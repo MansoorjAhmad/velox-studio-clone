@@ -1,0 +1,17 @@
+{
+  "name": "Velox Studio",
+  "short_name": "Velox",
+  "description": "Trading Journal, Risk Calculator & Performance OS for serious traders.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
