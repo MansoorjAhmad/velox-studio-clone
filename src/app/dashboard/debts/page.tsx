@@ -2,8 +2,8 @@
 
 export const dynamic = "force-dynamic";
 
-import { TimePage } from "@/components/time/time-page";
+import { DebtsPage } from "@/components/debts/debts-page";
 
 export default function Page() {
-  return <TimePage />;
+  return <DebtsPage />;
 }

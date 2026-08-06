@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -117,9 +118,16 @@ export function TradeList({
   const handleDelete = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
-    await deleteTrade(confirmDelete.id);
+    const res = await deleteTrade(confirmDelete.id);
     setDeleting(false);
     setConfirmDelete(null);
+    if (res?.error) {
+      toast.error("Delete failed", { description: res.error });
+    } else {
+      toast.success("Trade deleted", {
+        description: `${confirmDelete.symbol} ${confirmDelete.direction} removed from journal`,
+      });
+    }
     onChanged?.();
   };
 

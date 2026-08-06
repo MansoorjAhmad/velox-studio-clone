@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
@@ -374,6 +375,9 @@ function GoalCard({
             <button
               onClick={async () => {
                 await toggleComplete(goal.id);
+                toast.success(goal.completed ? "Marked incomplete" : "Goal completed", {
+                  description: goal.title,
+                });
                 onChanged();
               }}
               className={cn(
@@ -389,6 +393,7 @@ function GoalCard({
             <button
               onClick={async () => {
                 await deleteGoal(goal.id);
+                toast.success("Goal deleted", { description: goal.title });
                 onChanged();
               }}
               className="p-1.5 rounded hover:bg-loss/10 text-foreground-subtle hover:text-loss"
@@ -525,6 +530,7 @@ function GoalForm({
     if (res.error) { setErr(res.error); return; }
 
     setTitle(""); setTarget(""); setNotes(""); setCustomLabel("");
+    toast.success("Goal created", { description: title.trim() });
     onSaved();
   };
 

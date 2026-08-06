@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { getTasks, createTask, updateTask, updateTaskStatus, deleteTask } from "@/lib/tasks/actions";
 import {
   TASK_CATEGORIES,
@@ -28,15 +31,23 @@ import {
   Edit2,
   Loader2,
   Inbox,
-  ChevronRight,
+  LayoutGrid,
+  ListFilter,
+  Layers,
+  Sparkles,
+  Flame,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type ViewMode = "kanban" | "matrix";
 
 export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<string>("todo");
+  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -53,33 +64,55 @@ export function TasksPage() {
     load();
   }, [load]);
 
-  const filtered = tasks.filter((t) => {
-    if (tab === "all") return true;
-    return t.status === tab;
-  });
-
-  const todoCount = tasks.filter((t) => t.status === "todo").length;
-  const ipCount = tasks.filter((t) => t.status === "in_progress").length;
-  const doneCount = tasks.filter((t) => t.status === "done").length;
+  const todoTasks = useMemo(() => tasks.filter((t) => t.status === "todo"), [tasks]);
+  const inProgressTasks = useMemo(() => tasks.filter((t) => t.status === "in_progress"), [tasks]);
+  const doneTasks = useMemo(() => tasks.filter((t) => t.status === "done"), [tasks]);
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-md bg-brand/10 flex items-center justify-center">
             <CheckSquare className="w-5 h-5 text-brand" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tasks</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Tasks Command Center</h1>
             <p className="text-sm text-foreground-muted">
-              Stay on top of everything.
+              Organize execution. Kanban & Eisenhower Matrix view.
             </p>
           </div>
         </div>
-        <Button size="sm" onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4" />
-          Add Task
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View Mode Switcher */}
+          <div className="flex items-center rounded-lg border border-border bg-surface p-1">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={cn(
+                "px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5",
+                viewMode === "kanban" ? "bg-brand text-white shadow-sm" : "text-foreground-muted hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Kanban
+            </button>
+            <button
+              onClick={() => setViewMode("matrix")}
+              className={cn(
+                "px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5",
+                viewMode === "matrix" ? "bg-brand text-white shadow-sm" : "text-foreground-muted hover:text-foreground",
+              )}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Matrix
+            </button>
+          </div>
+
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -88,62 +121,96 @@ export function TasksPage() {
         </Card>
       )}
 
-      {/* Quick stats */}
+      {/* Quick KPI stats */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "To Do", count: todoCount, color: "text-foreground-muted" },
-          { label: "In Progress", count: ipCount, color: "text-brand" },
-          { label: "Done", count: doneCount, color: "text-profit" },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="rounded-lg border border-border bg-surface px-4 py-3"
-          >
-            <p className={cn("text-2xl font-bold tabular", s.color)}>
-              {s.count}
-            </p>
-            <p className="text-xs text-foreground-subtle">{s.label}</p>
-          </div>
-        ))}
+        <div className="rounded-lg border border-border bg-surface px-4 py-3">
+          <p className="text-2xl font-bold tabular text-foreground">{todoTasks.length}</p>
+          <p className="text-xs text-foreground-subtle">To Do</p>
+        </div>
+        <div className="rounded-lg border border-brand/30 bg-brand/5 px-4 py-3">
+          <p className="text-2xl font-bold tabular text-brand">{inProgressTasks.length}</p>
+          <p className="text-xs text-foreground-subtle">In Progress</p>
+        </div>
+        <div className="rounded-lg border border-profit/30 bg-profit/5 px-4 py-3">
+          <p className="text-2xl font-bold tabular text-profit">{doneTasks.length}</p>
+          <p className="text-xs text-foreground-subtle">Completed</p>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="todo">
-            To Do <span className="ml-1 tabular text-xs opacity-50">{todoCount}</span>
-          </TabsTrigger>
-          <TabsTrigger value="in_progress">
-            Active <span className="ml-1 tabular text-xs opacity-50">{ipCount}</span>
-          </TabsTrigger>
-          <TabsTrigger value="done">
-            Done <span className="ml-1 tabular text-xs opacity-50">{doneCount}</span>
-          </TabsTrigger>
-          <TabsTrigger value="all">All</TabsTrigger>
-        </TabsList>
+      {/* View Engine */}
+      {loading ? (
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 w-full" />
+          ))}
+        </div>
+      ) : viewMode === "kanban" ? (
+        /* ── KANBAN BOARD VIEW ── */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* TO DO COLUMN */}
+          <KanbanColumn
+            title="To Do"
+            badgeColor="bg-surface-3 text-foreground-muted"
+            tasks={todoTasks}
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
 
-        <TabsContent value={tab}>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-2">
-              {filtered.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  onChanged={load}
-                  onEdit={() => setEditingTask(task)}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          {/* IN PROGRESS COLUMN */}
+          <KanbanColumn
+            title="In Progress"
+            badgeColor="bg-brand/15 text-brand"
+            tasks={inProgressTasks}
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
+
+          {/* DONE COLUMN */}
+          <KanbanColumn
+            title="Completed"
+            badgeColor="bg-profit/15 text-profit"
+            tasks={doneTasks}
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
+        </div>
+      ) : (
+        /* ── EISENHOWER MATRIX VIEW ── */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <MatrixQuadrant
+            title="🔥 Urgent & Important"
+            sub="Do First — Critical deadlines & trading actions"
+            tasks={tasks.filter((t) => t.priority === "urgent" || t.priority === "high")}
+            borderColor="border-danger/30 bg-danger/[0.02]"
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
+          <MatrixQuadrant
+            title="🎯 Important (Long-Term)"
+            sub="Schedule — Strategy rules, learning & goals"
+            tasks={tasks.filter((t) => t.priority === "medium")}
+            borderColor="border-brand/30 bg-brand/[0.02]"
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
+          <MatrixQuadrant
+            title="⚡ Quick Wins / Delegate"
+            sub="Do Next — Fast tasks & routine actions"
+            tasks={tasks.filter((t) => t.priority === "low" && t.status !== "done")}
+            borderColor="border-warning/30 bg-warning/[0.02]"
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
+          <MatrixQuadrant
+            title="✅ Completed Archive"
+            sub="Done — Finished items"
+            tasks={tasks.filter((t) => t.status === "done")}
+            borderColor="border-profit/30 bg-profit/[0.02]"
+            onChanged={load}
+            onEdit={(t) => setEditingTask(t)}
+          />
+        </div>
+      )}
 
       {/* Create Modal */}
       <TaskFormModal
@@ -171,160 +238,177 @@ export function TasksPage() {
   );
 }
 
-function TaskRow({
+// ── Kanban Column Component ─────────────────────────────────────
+
+function KanbanColumn({
+  title,
+  badgeColor,
+  tasks,
+  onChanged,
+  onEdit,
+}: {
+  title: string;
+  badgeColor: string;
+  tasks: Task[];
+  onChanged: () => void;
+  onEdit: (t: Task) => void;
+}) {
+  return (
+    <Card className="bg-surface-2/40 flex flex-col h-full min-h-[400px]">
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-border/60">
+        <CardTitle className="text-sm font-bold flex items-center gap-2">
+          {title}
+        </CardTitle>
+        <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", badgeColor)}>
+          {tasks.length}
+        </span>
+      </CardHeader>
+      <CardContent className="p-3 space-y-2.5 flex-1 overflow-y-auto">
+        {tasks.length === 0 ? (
+          <div className="py-12 text-center text-xs text-foreground-subtle">
+            No tasks in this stage
+          </div>
+        ) : (
+          tasks.map((task) => (
+            <TaskCard key={task.id} task={task} onChanged={onChanged} onEdit={onEdit} />
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Matrix Quadrant Component ───────────────────────────────────
+
+function MatrixQuadrant({
+  title,
+  sub,
+  tasks,
+  borderColor,
+  onChanged,
+  onEdit,
+}: {
+  title: string;
+  sub: string;
+  tasks: Task[];
+  borderColor: string;
+  onChanged: () => void;
+  onEdit: (t: Task) => void;
+}) {
+  return (
+    <Card className={cn("border transition-all", borderColor)}>
+      <CardHeader className="py-3 px-4 border-b border-border/50">
+        <CardTitle className="text-sm font-bold">{title}</CardTitle>
+        <p className="text-[11px] text-foreground-subtle">{sub}</p>
+      </CardHeader>
+      <CardContent className="p-3 space-y-2 max-h-72 overflow-y-auto">
+        {tasks.length === 0 ? (
+          <p className="py-6 text-center text-xs text-foreground-subtle">No tasks</p>
+        ) : (
+          tasks.map((task) => (
+            <TaskCard key={task.id} task={task} onChanged={onChanged} onEdit={onEdit} />
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Individual Task Card ────────────────────────────────────────
+
+function TaskCard({
   task,
   onChanged,
   onEdit,
 }: {
   task: Task;
   onChanged: () => void;
-  onEdit: () => void;
+  onEdit: (t: Task) => void;
 }) {
   const nextStatus =
     task.status === "todo"
       ? "in_progress"
       : task.status === "in_progress"
-        ? "done"
-        : "todo";
-
-  const todayStr = new Date().toISOString().split("T")[0];
-
-  const isOverdue =
-    task.due_date &&
-    task.status !== "done" &&
-    task.due_date < todayStr;
-
-  const isDueToday =
-    task.due_date &&
-    task.status !== "done" &&
-    task.due_date === todayStr;
-
-  // Priority dot colors
-  const dotColor: Record<string, string> = {
-    low: "bg-foreground-muted/50",
-    medium: "bg-brand",
-    high: "bg-amber-400",
-    urgent: "bg-loss",
-  };
+      ? "done"
+      : "todo";
 
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-2/50",
-        task.status === "done" && "opacity-50",
+        "group relative rounded-lg border border-border bg-surface p-3 space-y-2 hover:border-brand/40 transition-all",
+        task.status === "done" && "opacity-60 bg-surface-2/30",
       )}
     >
-      {/* Status cycle button */}
-      <button
-        onClick={async () => {
-          await updateTaskStatus(task.id, nextStatus);
-          onChanged();
-        }}
-        className={cn(
-          "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-          task.status === "done"
-            ? "border-profit bg-profit text-surface"
-            : task.status === "in_progress"
-              ? "border-brand bg-brand/20"
-              : "border-foreground-subtle/40 hover:border-brand",
-        )}
-        title={`Move to: ${STATUS_LABELS[nextStatus]}`}
-      >
-        {task.status === "done" && (
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </button>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <button
+            onClick={async () => {
+              await updateTaskStatus(task.id, nextStatus);
+              if (nextStatus === "done") toast.success("Task done", { description: task.title });
+              onChanged();
+            }}
+            className={cn(
+              "mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+              task.status === "done"
+                ? "border-profit bg-profit text-white"
+                : task.status === "in_progress"
+                ? "border-brand bg-brand/20 text-brand"
+                : "border-border text-transparent hover:border-brand",
+            )}
+            title={`Move to ${STATUS_LABELS[nextStatus]}`}
+          >
+            <CheckCircle2 className="w-3 h-3" />
+          </button>
 
-      {/* Priority dot */}
-      <span
-        className={cn(
-          "w-2 h-2 rounded-full shrink-0",
-          dotColor[task.priority] ?? "bg-foreground-muted/50",
-        )}
-        title={`Priority: ${task.priority}`}
-      />
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
           <p
             className={cn(
-              "text-sm font-medium truncate",
+              "text-xs font-semibold text-foreground leading-tight",
               task.status === "done" && "line-through text-foreground-muted",
             )}
           >
             {task.title}
           </p>
-          {isDueToday && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-amber-400/15 text-amber-400 leading-none shrink-0">
-              Due Today
-            </span>
-          )}
-          {isOverdue && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-loss/15 text-loss leading-none shrink-0">
-              Overdue
-            </span>
-          )}
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs capitalize text-foreground-subtle">
-            {task.category}
-          </span>
-          <span className="text-foreground-subtle/30">·</span>
-          <span className={cn("text-xs capitalize", PRIORITY_COLORS[task.priority])}>
-            {task.priority}
-          </span>
-          {task.due_date && !isDueToday && !isOverdue && (
-            <>
-              <span className="text-foreground-subtle/30">·</span>
-              <span className="text-xs text-foreground-subtle">
-                {new Date(task.due_date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-            </>
-          )}
+
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={() => onEdit(task)}
+            className="p-1 rounded hover:bg-surface-2 text-foreground-subtle hover:text-foreground"
+          >
+            <Edit2 className="w-3 h-3" />
+          </button>
+          <button
+            onClick={async () => {
+              await deleteTask(task.id);
+              onChanged();
+            }}
+            className="p-1 rounded hover:bg-loss/10 text-foreground-subtle hover:text-loss"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {task.status !== "done" && (
-          <button
-            onClick={async () => {
-              await updateTaskStatus(task.id, "done");
-              onChanged();
-            }}
-            className="p-1.5 rounded hover:bg-profit/10 text-foreground-subtle hover:text-profit"
-            title="Complete"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
-        <button
-          onClick={onEdit}
-          className="p-1.5 rounded hover:bg-brand/10 text-foreground-subtle hover:text-brand"
-          title="Edit Task"
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 text-[10px]">
+        <span className="capitalize text-foreground-subtle">{task.category}</span>
+        <Badge
+          variant={
+            task.priority === "urgent"
+              ? "loss"
+              : task.priority === "high"
+              ? "warning"
+              : "outline"
+          }
+          className="text-[9px] py-0 px-1.5 uppercase"
         >
-          <Edit2 className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={async () => {
-            await deleteTask(task.id);
-            onChanged();
-          }}
-          className="p-1.5 rounded hover:bg-loss/10 text-foreground-subtle hover:text-loss"
-          title="Delete Task"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+          {task.priority}
+        </Badge>
       </div>
     </div>
   );
 }
+
+// ── Task Form Modal ─────────────────────────────────────────────
 
 function TaskFormModal({
   open,
@@ -396,7 +480,7 @@ function TaskFormModal({
         <div className="space-y-1.5">
           <Label>Task Title *</Label>
           <Input
-            placeholder="e.g. Review EURUSD daily chart"
+            placeholder="e.g. Review TJL 2 setups & backtest notes"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             autoFocus
@@ -406,10 +490,7 @@ function TaskFormModal({
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label>Category</Label>
-            <Select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
+            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
               {TASK_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c.charAt(0).toUpperCase() + c.slice(1)}
@@ -419,10 +500,7 @@ function TaskFormModal({
           </div>
           <div className="space-y-1.5">
             <Label>Priority</Label>
-            <Select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-            >
+            <Select value={priority} onChange={(e) => setPriority(e.target.value)}>
               {TASK_PRIORITIES.map((p) => (
                 <option key={p} value={p}>
                   {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -450,17 +528,5 @@ function TaskFormModal({
         </div>
       </form>
     </Modal>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-surface/50 py-12 text-center">
-      <Inbox className="w-8 h-8 text-foreground-subtle mx-auto mb-3" />
-      <p className="text-sm font-medium">No tasks here</p>
-      <p className="text-xs text-foreground-muted mt-1">
-        Add a task to start organizing your day.
-      </p>
-    </div>
   );
 }

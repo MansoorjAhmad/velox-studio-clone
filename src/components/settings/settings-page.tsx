@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile, upsertProfile } from "@/lib/settings/actions";
+import {
+  getTradingAccounts,
+  createTradingAccount,
+  deleteTradingAccount,
+  updateTradingAccount,
+} from "@/lib/accounts/actions";
+import type { TradingAccount } from "@/lib/accounts/types";
 import { getApiKey, setApiKey, clearApiKey } from "@/lib/zenith/api-key";
+import { getTradingConfig, saveTradingConfig, type TradingConfig } from "@/lib/trading-config";
 import {
   Card,
   CardContent,
@@ -15,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
 import {
   Settings,
   User,
@@ -24,8 +33,13 @@ import {
   Save,
   Loader2,
   Shield,
+  Wallet,
+  Plus,
+  Trash2,
+  Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
@@ -36,9 +50,27 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [zenithKey, setZenithKey] = useState("");
   const [zenithSaved, setZenithSaved] = useState(false);
+  const [tradingConfig, setTradingConfig] = useState<TradingConfig>(() => getTradingConfig());
+  const [configSaved, setConfigSaved] = useState(false);
+
+  // Trading Accounts state
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [accName, setAccName] = useState("");
+  const [accBroker, setAccBroker] = useState("");
+  const [accNumber, setAccNumber] = useState("");
+  const [accBalance, setAccBalance] = useState("10000");
+  const [accType, setAccType] = useState<"standard" | "cent" | "prop" | "funded">("prop");
+  const [accColor, setAccColor] = useState("#6366f1");
+  const [creatingAcc, setCreatingAcc] = useState(false);
 
   const supabase = createClient();
   const router = useRouter();
+
+  const loadAccounts = async () => {
+    const res = await getTradingAccounts();
+    setAccounts(res.data ?? []);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -56,16 +88,18 @@ export function SettingsPage() {
         setDisplayName(user.email.split("@")[0]);
       }
 
-      // Load Zenith key from localStorage
+      await loadAccounts();
+
       const storedKey = getApiKey();
       setZenithKey(storedKey ?? "");
+      setTradingConfig(getTradingConfig());
 
       setLoading(false);
     };
     load();
   }, [supabase]);
 
-  const handleSave = async () => {
+  const handleSaveProfile = async () => {
     setSaving(true);
     setSaved(false);
 
@@ -82,6 +116,48 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveTradingConfig = () => {
+    saveTradingConfig(tradingConfig);
+    setConfigSaved(true);
+    setTimeout(() => setConfigSaved(false), 2000);
+  };
+
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accName.trim()) return;
+
+    setCreatingAcc(true);
+    await createTradingAccount({
+      name: accName.trim(),
+      broker: accBroker.trim() || null,
+      account_number: accNumber.trim() || null,
+      currency,
+      initial_balance: parseFloat(accBalance) || 10000,
+      account_type: accType,
+      color: accColor,
+      is_default: accounts.length === 0,
+    });
+
+    setCreatingAcc(false);
+    setShowAddAccountModal(false);
+    setAccName("");
+    setAccBroker("");
+    setAccNumber("");
+    await loadAccounts();
+  };
+
+  const handleDeleteAccount = async (id: string) => {
+    await deleteTradingAccount(id);
+    await loadAccounts();
+  };
+
+  const handleSetDefault = async (id: string) => {
+    for (const acc of accounts) {
+      await updateTradingAccount(acc.id, { is_default: acc.id === id });
+    }
+    await loadAccounts();
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/auth/login");
@@ -96,10 +172,121 @@ export function SettingsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-sm text-foreground-muted">
-            Manage your profile and preferences.
+            Manage your profile, trading accounts, and preferences.
           </p>
         </div>
       </div>
+
+      {/* Trading Accounts Section */}
+      <Card className="border-brand/30">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-brand" />
+              Trading Accounts Management
+            </CardTitle>
+            <CardDescription>
+              Manage prop firm accounts (FTMO, Apex), personal accounts, or cent accounts.
+            </CardDescription>
+          </div>
+          <Button size="sm" onClick={() => setShowAddAccountModal(true)}>
+            <Plus className="w-4 h-4" />
+            Add Account
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {accounts.length === 0 ? (
+            <div className="py-6 text-center text-xs text-foreground-muted border border-dashed rounded-lg">
+              No trading accounts created yet. Click "Add Account" to create your first account.
+            </div>
+          ) : (
+            accounts.map((acc) => (
+              <div
+                key={acc.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-surface-2/40 hover:border-brand/40 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: acc.color }} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold">{acc.name}</p>
+                      {acc.is_default && (
+                        <Badge variant="brand" className="text-[9px]">
+                          DEFAULT
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-[9px] uppercase">
+                        {acc.account_type}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-foreground-subtle mt-0.5">
+                      {acc.broker ?? "MetaTrader"} {acc.account_number ? `· #${acc.account_number}` : ""} · Balance: ${acc.initial_balance.toLocaleString()} {acc.currency}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {!acc.is_default && (
+                    <Button size="sm" variant="ghost" onClick={() => handleSetDefault(acc.id)}>
+                      Make Default
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => handleDeleteAccount(acc.id)}
+                    className="p-1.5 rounded hover:bg-loss/10 text-foreground-subtle hover:text-loss"
+                    title="Delete Account"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Trading configuration is intentionally kept in one shared client store.
+          Dashboard and calculator listen for its update event. */}
+      <Card className="border-brand/25 bg-gradient-to-br from-brand/5 via-surface to-surface-2">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="w-4 h-4 text-brand" />
+            Trading Configuration
+          </CardTitle>
+          <CardDescription>
+            The command-center defaults used by Dashboard and Risk Calculator.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>TOPG Phase</Label>
+              <select value={tradingConfig.topgPhase} onChange={(e) => setTradingConfig((c) => ({ ...c, topgPhase: e.target.value }))} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand">
+                {["TJL 1", "TJL 2 (A+)", "LEVEL 4", "QML", "DB / DT", "SBR / RBS"].map((phase) => <option key={phase}>{phase}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Monthly Profit Target ($)</Label>
+              <Input type="number" min="0" step="50" value={tradingConfig.monthlyProfitTarget} onChange={(e) => setTradingConfig((c) => ({ ...c, monthlyProfitTarget: Number(e.target.value) || 0 }))} className="font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Default Risk per Trade (%)</Label>
+              <Input type="number" min="0" max="100" step="0.05" value={tradingConfig.phaseRiskPct} onChange={(e) => setTradingConfig((c) => ({ ...c, phaseRiskPct: Number(e.target.value) || 0 }))} className="font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Daily Risk Limit (%)</Label>
+              <Input type="number" min="0" max="100" step="0.1" value={tradingConfig.dailyRiskLimitPct} onChange={(e) => setTradingConfig((c) => ({ ...c, dailyRiskLimitPct: Number(e.target.value) || 0 }))} className="font-mono" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface/60 p-3">
+            <p className="text-[11px] text-foreground-muted">Applies instantly to dashboard target/risk telemetry and calculator defaults.</p>
+            <Button size="sm" onClick={handleSaveTradingConfig} className="shrink-0">
+              {configSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+              {configSaved ? "Synced" : "Save Config"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Profile section */}
       <Card>
@@ -135,7 +322,7 @@ export function SettingsPage() {
               <option value="live">Live Account</option>
             </select>
           </div>
-          <Button onClick={handleSave} disabled={saving || loading} size="sm">
+          <Button onClick={handleSaveProfile} disabled={saving || loading} size="sm">
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : saved ? (
@@ -186,7 +373,6 @@ export function SettingsPage() {
           </CardTitle>
           <CardDescription>
             Enter your Velox Zenith AI access key to enable Zenith Agent and automated analysis.
-            Your key is saved locally in your browser for privacy.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -258,6 +444,84 @@ export function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Add Account Modal */}
+      <Modal open={showAddAccountModal} onClose={() => setShowAddAccountModal(false)} title="Add Trading Account">
+        <form onSubmit={handleCreateAccount} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Account Name *</Label>
+            <Input
+              placeholder="e.g. FTMO $100K Challenge, Personal Cent"
+              value={accName}
+              onChange={(e) => setAccName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Broker / Platform</Label>
+              <Input
+                placeholder="e.g. MetaTrader 5, IC Markets"
+                value={accBroker}
+                onChange={(e) => setAccBroker(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Account Number (optional)</Label>
+              <Input
+                placeholder="e.g. 50123984"
+                value={accNumber}
+                onChange={(e) => setAccNumber(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Initial Balance ($)</Label>
+              <Input
+                type="number"
+                step="100"
+                placeholder="10000"
+                value={accBalance}
+                onChange={(e) => setAccBalance(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Account Type</Label>
+              <select
+                value={accType}
+                onChange={(e) => setAccType(e.target.value as any)}
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-xs outline-none"
+              >
+                <option value="prop">Prop Firm Challenge</option>
+                <option value="funded">Funded Account</option>
+                <option value="standard">Standard Live</option>
+                <option value="cent">Cent Account (USC)</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Account Color Code</Label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={accColor}
+                onChange={(e) => setAccColor(e.target.value)}
+                className="w-10 h-8 rounded border border-border cursor-pointer bg-surface"
+              />
+              <Input value={accColor} onChange={(e) => setAccColor(e.target.value)} className="font-mono text-xs" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddAccountModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={creatingAcc || !accName.trim()}>
+              {creatingAcc ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Account"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

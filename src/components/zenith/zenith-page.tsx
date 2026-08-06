@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { PageTransition } from "@/components/ui/motion";
 import {
   Card,
   CardContent,
@@ -40,6 +41,7 @@ import {
   type LocalInsight,
 } from "@/lib/zenith/local-insights";
 import { getAiInsights } from "@/lib/zenith/insights-client";
+import { ZenithDepth } from "@/components/zenith/zenith-depth";
 import {
   AreaChart,
   Area,
@@ -133,9 +135,9 @@ export function ZenithPage() {
   }, [metrics, drawdown, streak, setupBreakdown, sessionBreakdown]);
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <PageTransition className="space-y-8">
       {/* Hero header */}
-      <div className="relative overflow-hidden rounded-xl border border-brand/20 bg-gradient-to-br from-brand/5 via-surface to-surface p-6">
+      <div className="relative overflow-hidden rounded-xl border border-brand/20 glass p-6">
         <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
         <div className="relative flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -357,9 +359,12 @@ export function ZenithPage() {
               icon={<TrendingUp className="w-4 h-4" />}
             />
           </div>
+
+          {/* Zenith AI Depth: patterns, weekly review, NL query */}
+          <ZenithDepth trades={trades} />
         </>
       )}
-    </div>
+    </PageTransition>
   );
 }
 

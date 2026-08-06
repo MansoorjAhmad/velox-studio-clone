@@ -47,7 +47,7 @@ function Modal({
       {/* Content */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg border border-border bg-surface shadow-2xl animate-fade-in",
+          "relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg border border-border bg-surface shadow-2xl animate-slide-up",
           className,
         )}
       >

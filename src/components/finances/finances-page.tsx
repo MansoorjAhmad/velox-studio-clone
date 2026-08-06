@@ -539,8 +539,15 @@ type DebtStatus = "active" | "due_soon" | "overdue" | "paid";
 
 function getDebtStatus(debt: Debt): DebtStatus {
   if (debt.is_paid_off || debt.balance <= 0) return "paid";
-  // Use due_day as a proxy — if we have due_day and today > due_day this month, overdue
-  // For now use a simple rule: if balance === 0 → paid, otherwise active
+  // Compute due_soon / overdue from due_day if available.
+  if (debt.due_day != null) {
+    const now = new Date();
+    const today = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const due = Math.min(debt.due_day, daysInMonth);
+    if (today > due) return "overdue";
+    if (today >= due - 5) return "due_soon";
+  }
   return "active";
 }
 

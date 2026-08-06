@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ZenithAgent } from "@/components/zenith/zenith-agent";
 import { TopBar } from "@/components/layout/topbar";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -64,6 +65,8 @@ export default function DashboardLayout({
       </div>
       {/* Zenith Agent — floating chat bubble, bottom-right */}
       <ZenithAgent />
+      {/* Command Palette — ⌘K */}
+      <CommandPalette />
     </div>
   );
 }

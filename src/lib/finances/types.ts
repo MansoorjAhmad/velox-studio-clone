@@ -19,16 +19,19 @@ export interface Debt {
   id: string;
   user_id: string;
   name: string;
-  creditor: string | null;
+  creditor?: string | null;
   balance: number;
-  original_balance: number | null;
-  interest_rate: number | null;
-  min_payment: number | null;
-  due_day: number | null;
-  strategy: "avalanche" | "snowball" | "minimum" | null;
-  is_paid_off: boolean;
+  original_balance?: number | null;
+  total_amount?: number;
+  paid_amount?: number;
+  type?: "credit_card" | "loan" | "mortgage" | "other";
+  interest_rate?: number | null;
+  min_payment?: number | null;
+  due_day?: number | null;
+  strategy?: "avalanche" | "snowball" | "minimum" | null;
+  is_paid_off?: boolean;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export type DebtInput = Omit<

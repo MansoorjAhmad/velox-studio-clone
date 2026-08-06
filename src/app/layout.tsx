@@ -1,15 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://veloxstudio.app";
@@ -112,7 +115,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} dark`}
       suppressHydrationWarning
     >
       <head>
@@ -125,6 +128,26 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
+        <Toaster
+          position="bottom-right"
+          theme="dark"
+          richColors={false}
+          closeButton
+          toastOptions={{
+            style: {
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+              borderRadius: "var(--radius)",
+              fontSize: "13px",
+            },
+            classNames: {
+              success: "!border-profit/40",
+              error: "!border-loss/40",
+              info: "!border-brand/40",
+            },
+          }}
+        />
       </body>
     </html>
   );

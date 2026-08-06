@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -248,11 +249,15 @@ export function TradeForm({
 
     if (result.error) {
       setError(result.error);
+      toast.error("Couldn't save trade", { description: result.error });
       setSaving(false);
       return;
     }
 
     setSuccess(true);
+    toast.success(`Trade ${tradeId ? "updated" : "logged"}`, {
+      description: `${payload.symbol} ${payload.direction} ${payload.status === "open" ? "opened" : "recorded"}`,
+    });
     setSaving(false);
     setTimeout(() => {
       onSaved?.();

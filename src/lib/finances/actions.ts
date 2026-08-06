@@ -166,5 +166,13 @@ export async function logDebtPayment(
 
   if (updErr) return { error: updErr.message };
   revalidatePath("/dashboard/finances");
+  revalidatePath("/dashboard/debts");
   return {};
+}
+
+export async function updateDebtPayment(
+  debtId: string,
+  paidAmount: number,
+): Promise<{ error?: string }> {
+  return updateDebt(debtId, { paid_amount: paidAmount } as any);
 }

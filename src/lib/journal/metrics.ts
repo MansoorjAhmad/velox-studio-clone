@@ -278,6 +278,127 @@ export function buildCalendar(trades: Trade[]): Map<string, CalendarDay> {
 //  STREAK (current) — today's running win/loss streak.
 // ────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────
+//  DRAWDOWN CURVE — underwater equity for analytics charts.
+// ────────────────────────────────────────────────────────────────
+
+export interface DrawdownPoint {
+  date: string;
+  equity: number;
+  drawdown: number;
+  drawdownPct: number;
+}
+
+export function buildDrawdownCurve(trades: Trade[]): DrawdownPoint[] {
+  const curve = buildEquityCurve(trades);
+  if (curve.length === 0) return [];
+
+  let peak = curve[0].equity;
+  return curve.map((p) => {
+    if (p.equity > peak) peak = p.equity;
+    const dd = peak - p.equity;
+    return {
+      date: p.date,
+      equity: p.equity,
+      drawdown: -dd,
+      drawdownPct: peak > 0 ? -(dd / peak) * 100 : 0,
+    };
+  });
+}
+
+// ────────────────────────────────────────────────────────────────
+//  R-MULTIPLE DISTRIBUTION
+// ────────────────────────────────────────────────────────────────
+
+export interface RBucket {
+  label: string;
+  count: number;
+}
+
+export function buildRMultipleBuckets(trades: Trade[]): RBucket[] {
+  const buckets = [
+    { label: "< -2R", min: -Infinity, max: -2 },
+    { label: "-2R to -1R", min: -2, max: -1 },
+    { label: "-1R to 0R", min: -1, max: 0 },
+    { label: "0R to 1R", min: 0, max: 1 },
+    { label: "1R to 2R", min: 1, max: 2 },
+    { label: "2R to 3R", min: 2, max: 3 },
+    { label: "3R+", min: 3, max: Infinity },
+  ];
+
+  const closed = trades.filter(isClosed).filter((t) => t.r_multiple != null);
+  return buckets.map((b) => ({
+    label: b.label,
+    count: closed.filter((t) => t.r_multiple! > b.min && t.r_multiple! <= b.max).length,
+  }));
+}
+
+// ────────────────────────────────────────────────────────────────
+//  EMOTION CORRELATION
+// ────────────────────────────────────────────────────────────────
+
+export interface EmotionStat {
+  emotion: string;
+  trades: number;
+  winRate: number;
+  netPnl: number;
+}
+
+export function buildEmotionStats(trades: Trade[]): EmotionStat[] {
+  const map = new Map<string, Trade[]>();
+  for (const t of trades) {
+    if (!isClosed(t) || !t.emotion_before?.length) continue;
+    for (const e of t.emotion_before) {
+      if (!map.has(e)) map.set(e, []);
+      map.get(e)!.push(t);
+    }
+  }
+  return Array.from(map.entries())
+    .map(([emotion, group]) => {
+      const closed = group.filter(isClosed);
+      const wins = closed.filter((t) => t.pnl > 0).length;
+      return {
+        emotion,
+        trades: closed.length,
+        winRate: closed.length > 0 ? (wins / closed.length) * 100 : 0,
+        netPnl: closed.reduce((s, t) => s + t.pnl, 0),
+      };
+    })
+    .sort((a, b) => b.netPnl - a.netPnl);
+}
+
+// ────────────────────────────────────────────────────────────────
+//  MONTHLY P&L BARS
+// ────────────────────────────────────────────────────────────────
+
+export interface MonthlyPnl {
+  month: string;
+  label: string;
+  pnl: number;
+  trades: number;
+}
+
+export function buildMonthlyPnl(trades: Trade[], months = 6): MonthlyPnl[] {
+  const result: MonthlyPnl[] = [];
+  const now = new Date();
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    const monthTrades = trades.filter(
+      (t): t is ClosedTrade =>
+        isClosed(t) && (t.exit_time ?? t.entry_time).startsWith(key),
+    );
+    result.push({
+      month: key,
+      label,
+      pnl: monthTrades.reduce((s, t) => s + t.pnl, 0),
+      trades: monthTrades.length,
+    });
+  }
+  return result;
+}
+
 export function currentStreak(trades: Trade[]): {
   type: "win" | "loss" | "none";
   count: number;
@@ -302,3 +423,194 @@ export function currentStreak(trades: Trade[]): {
   }
   return { type, count };
 }
+
+// ────────────────────────────────────────────────────────────────
+//  STREAK HISTORY — chronological win/loss sequence for charts.
+//  Returns each streak run with its length and cumulative pnl.
+// ────────────────────────────────────────────────────────────────
+
+export interface StreakRun {
+  type: "win" | "loss" | "breakeven";
+  length: number;
+  pnl: number;
+  /** Index of the last trade in the run (1-based, chronological). */
+  endIndex: number;
+}
+
+export function buildStreakHistory(trades: Trade[]): StreakRun[] {
+  const closed = trades
+    .filter(isClosed)
+    .sort(
+      (a, b) =>
+        new Date(a.exit_time ?? a.entry_time).getTime() -
+        new Date(b.exit_time ?? b.entry_time).getTime(),
+    );
+
+  if (closed.length === 0) return [];
+
+  const runs: StreakRun[] = [];
+  let currentType: "win" | "loss" | "breakeven" | null = null;
+  let length = 0;
+  let pnl = 0;
+  let endIndex = 0;
+
+  for (let i = 0; i < closed.length; i++) {
+    const t = closed[i];
+    endIndex = i + 1;
+    const tType: "win" | "loss" | "breakeven" =
+      t.pnl > 0 ? "win" : t.pnl < 0 ? "loss" : "breakeven";
+
+    if (currentType === null) {
+      currentType = tType;
+      length = 1;
+      pnl = t.pnl;
+    } else if (tType === currentType) {
+      length++;
+      pnl += t.pnl;
+    } else {
+      runs.push({ type: currentType, length, pnl, endIndex });
+      currentType = tType;
+      length = 1;
+      pnl = t.pnl;
+    }
+  }
+
+  // Push the final run.
+  if (currentType !== null) {
+    runs.push({ type: currentType, length, pnl, endIndex });
+  }
+
+  return runs;
+}
+
+// ────────────────────────────────────────────────────────────────
+//  DRAWDOWN DETAILS — max drawdown %, duration, and recovery time.
+//
+//  Recovery time = how long (in trades + days) from the trough back
+//  to a new equity high. If no recovery yet, recoveryTimeDays = null
+//  and `recovered` = false.
+// ────────────────────────────────────────────────────────────────
+
+export interface DrawdownDetails {
+  maxDrawdown: number;
+  maxDrawdownPct: number;
+  /** Number of trades from peak to trough. */
+  maxDrawdownDurationTrades: number;
+  /** Calendar days from the peak trade to the trough trade. */
+  maxDrawdownDurationDays: number;
+  /** Days from trough back to a new equity high (null if not yet recovered). */
+  recoveryTimeDays: number | null;
+  /** Whether equity has made a new high after the max drawdown. */
+  recovered: boolean;
+  /** Date of the trough (YYYY-MM-DD). */
+  troughDate: string | null;
+  /** Date of recovery (YYYY-MM-DD), or null. */
+  recoveryDate: string | null;
+}
+
+export function calculateDrawdownDetails(
+  trades: Trade[],
+  startingBalance = 0,
+): DrawdownDetails {
+  const curve = buildEquityCurve(trades);
+  if (curve.length === 0) {
+    return {
+      maxDrawdown: 0,
+      maxDrawdownPct: 0,
+      maxDrawdownDurationTrades: 0,
+      maxDrawdownDurationDays: 0,
+      recoveryTimeDays: null,
+      recovered: false,
+      troughDate: null,
+      recoveryDate: null,
+    };
+  }
+
+  let peak = Math.max(startingBalance, curve[0].equity);
+  let peakIndex = -1;
+  let peakDate = curve[0].date;
+
+  let maxDd = 0;
+  let maxDdPct = 0;
+  let troughIndex = -1;
+  let troughDate: string | null = null;
+  // The peak value that immediately preceded the worst drawdown — this is
+  // the level equity must reclaim to count as "recovered". Captured at the
+  // moment we record a new max drawdown (NOT the running peak, which keeps
+  // climbing and would distort the recovery threshold).
+  let peakAtMaxDrawdown = peak;
+  let peakIndexAtMaxDrawdown = -1;
+
+  for (let i = 0; i < curve.length; i++) {
+    if (curve[i].equity > peak) {
+      peak = curve[i].equity;
+      peakIndex = i;
+      peakDate = curve[i].date;
+    }
+    const dd = peak - curve[i].equity;
+    if (dd > maxDd) {
+      maxDd = dd;
+      maxDdPct = peak > 0 ? dd / peak : 0;
+      troughIndex = i;
+      troughDate = curve[i].date;
+      peakAtMaxDrawdown = peak;
+      peakIndexAtMaxDrawdown = peakIndex;
+    }
+  }
+
+  // Duration: peak trade index → trough trade index.
+  const maxDrawdownDurationTrades =
+    peakIndexAtMaxDrawdown >= 0 && troughIndex >= 0
+      ? Math.max(0, troughIndex - peakIndexAtMaxDrawdown)
+      : 0;
+
+  const maxDrawdownDurationDays =
+    peakIndexAtMaxDrawdown >= 0 && troughDate
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(troughDate).getTime() -
+              new Date(curve[Math.max(0, peakIndexAtMaxDrawdown)].date).getTime()) /
+              86400000,
+          ),
+        )
+      : 0;
+
+  // Recovery: from the trough forward, find the first index where equity
+  // reaches or exceeds the peak that preceded the max drawdown.
+  let recoveryIdx = -1;
+  if (troughIndex >= 0) {
+    for (let i = troughIndex + 1; i < curve.length; i++) {
+      if (curve[i].equity >= peakAtMaxDrawdown) {
+        recoveryIdx = i;
+        break;
+      }
+    }
+  }
+
+  const recovered = recoveryIdx >= 0;
+  const recoveryDate = recovered ? curve[recoveryIdx].date : null;
+  const recoveryTimeDays =
+    recovered && troughDate
+      ? Math.max(
+          0,
+          Math.round(
+            (new Date(recoveryDate!).getTime() -
+              new Date(troughDate).getTime()) /
+              86400000,
+          ),
+        )
+      : null;
+
+  return {
+    maxDrawdown: maxDd,
+    maxDrawdownPct: maxDdPct,
+    maxDrawdownDurationTrades,
+    maxDrawdownDurationDays,
+    recoveryTimeDays,
+    recovered,
+    troughDate,
+    recoveryDate,
+  };
+}
+
