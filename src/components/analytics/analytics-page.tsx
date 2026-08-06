@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ChartTooltip } from "@/components/ui/chart-tooltip";
 import { getTrades } from "@/lib/journal/actions";
 import {
   buildEquityCurve,
@@ -57,11 +59,10 @@ import {
 
 export function AnalyticsPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [timeframe, setTimeframe] = useState<"7D" | "30D" | "90D" | "ALL">("30D");
 
   const load = useCallback(async () => {
-    setLoading(true);
     const res = await getTrades();
     let data = res.data ?? [];
     const activeAccId = localStorage.getItem("velox_active_account_id");
@@ -69,7 +70,7 @@ export function AnalyticsPage() {
       data = data.filter((t: any) => t.account_id === activeAccId);
     }
     setTrades(data);
-    setLoading(false);
+    setInitialLoad(false);
   }, []);
 
   useEffect(() => {
@@ -202,12 +203,12 @@ export function AnalyticsPage() {
     return days;
   }, [filteredTrades]);
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <div className="space-y-6 animate-fade-in">
         <Skeleton className="h-14 w-full" />
         <div className="grid grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}</div>
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-80 w-full" />
       </div>
     );
   }
@@ -290,16 +291,17 @@ export function AnalyticsPage() {
               <p className={cn("text-lg font-bold font-mono tabular mt-0.5", kpi.color)}>
                 {"minutes" in kpi && kpi.minutes
                   ? `${Math.round(kpi.value)}m`
-                  : `${kpi.value >= 0 ? "+" : ""}${formatCurrency(kpi.value)}`}
+                  : <AnimatedCounter value={kpi.value} format="currency" signed />}
               </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* ═══ EQUITY CURVE (zoomable) ═══ */}
-      <Card className="card-hover">
-        <CardHeader className="pb-2">
+      {/* ═══ EQUITY CURVE (hero) ═══ */}
+      <Card className="card-hover border-brand/15 relative overflow-hidden">
+        <div className="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
+        <CardHeader className="pb-2 relative">
           <CardTitle className="text-sm flex items-center justify-between">
             <span className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-brand" />
@@ -327,35 +329,51 @@ export function AnalyticsPage() {
             across <span className="text-foreground font-medium">{ddDetails.maxDrawdownDurationTrades}</span> trades.
           </CardDescription>
         </CardHeader>
-        <CardContent className={cn("pt-2", equityCurve.length > 1 ? "h-80" : "h-64")}>
+        <CardContent className={cn("pt-2 relative", equityCurve.length > 1 ? "h-80" : "h-72")}>
           {equityCurve.length === 0 ? (
-            <div className="h-full flex items-center justify-center border border-dashed border-border rounded-lg">
-              <p className="text-xs text-foreground-subtle">Close trades to generate your equity curve.</p>
-            </div>
+            <EmptyState
+              icon={TrendingUp}
+              title="No equity curve yet"
+              description="Close your first trade to start building your equity curve."
+              action={{ label: "Log a trade", href: "/dashboard/journal" }}
+            />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={equityCurve}>
                 <defs>
                   <linearGradient id="anaEqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
+                    <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                <XAxis dataKey="date" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} width={56} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
-                  labelStyle={{ color: "#94a3b8", fontSize: "10px" }}
-                  formatter={(val: any) => [formatCurrency(val), "Cumulative P&L"]}
+                  cursor={{ stroke: "var(--brand)", strokeWidth: 1, strokeDasharray: "4 4" }}
+                  content={<ChartTooltip
+                    labelFormatter={(l) => `Trade ${l}`}
+                    formatter={(val) => [formatCurrency(Number(val)), "Cumulative P&L"]}
+                    colorBySign
+                  />}
                 />
-                <Area type="monotone" dataKey="equity" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#anaEqGrad)" dot={false} activeDot={{ r: 4, fill: "#6366f1", stroke: "#fff", strokeWidth: 2 }} />
+                <Area
+                  type="monotone"
+                  dataKey="equity"
+                  stroke="#6366f1"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#anaEqGrad)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }}
+                />
                 {equityCurve.length > 1 && (
                   <Brush
                     dataKey="date"
                     height={24}
                     stroke="#6366f1"
-                    fill="#16161a"
+                    fill="var(--surface-2)"
                     travellerWidth={10}
                     tickFormatter={() => ""}
                   />
@@ -378,9 +396,12 @@ export function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             {streakHistory.length === 0 ? (
-              <div className="h-32 flex items-center justify-center border border-dashed border-border rounded-lg">
-                <p className="text-xs text-foreground-subtle">Close trades to track streaks.</p>
-              </div>
+              <EmptyState
+                icon={Flame}
+                title="No streaks yet"
+                description="Close trades to start tracking your win/loss streak runs."
+                size="sm"
+              />
             ) : (
               <>
                 {/* Streak run bars */}
@@ -545,17 +566,21 @@ export function AnalyticsPage() {
           </CardHeader>
           <CardContent className="h-56 pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dayOfWeekData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <BarChart data={dayOfWeekData} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                <XAxis dataKey="name" stroke="var(--foreground-subtle)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px", boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
-                  formatter={(val: any) => [formatCurrency(val), "Net P&L"]}
+                  cursor={{ fill: "var(--surface-2)", radius: 4 }}
+                  content={<ChartTooltip
+                    labelFormatter={(l) => String(l)}
+                    formatter={(val) => [formatCurrency(Number(val)), "Net P&L"]}
+                    colorBySign
+                  />}
                 />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="pnl" radius={[6, 6, 2, 2]}>
                   {dayOfWeekData.map((entry, index) => (
-                    <Cell key={`dow-${index}`} fill={entry.pnl >= 0 ? "#34d399" : "#fb7185"} />
+                    <Cell key={`dow-${index}`} fill={entry.pnl >= 0 ? "#34d399" : "#fb7185"} fillOpacity={0.9} />
                   ))}
                 </Bar>
               </BarChart>

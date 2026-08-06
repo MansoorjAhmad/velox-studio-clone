@@ -42,6 +42,9 @@ import {
   Layers,
 } from "lucide-react";
 import { PageTransition } from "@/components/ui/motion";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ChartTooltip } from "@/components/ui/chart-tooltip";
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Trade } from "@/lib/journal/types";
@@ -64,11 +67,12 @@ export default function DashboardPage() {
   const [username, setUsername] = useState("");
   const [trades, setTrades] = useState<Trade[]>([]);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  // initialLoad = true only on first mount — shows skeleton
+  // After first data arrives, we keep stale data visible on refetch
+  const [initialLoad, setInitialLoad] = useState(true);
   const [tradingConfig, setTradingConfig] = useState(getTradingConfig);
 
   const load = useCallback(async () => {
-    setLoading(true);
     const { data: authData } = await supabase.auth.getUser();
     if (authData.user?.email) {
       setUsername(authData.user.email.split("@")[0]);
@@ -84,7 +88,8 @@ export default function DashboardPage() {
       }
       setTrades(data);
     }
-    setLoading(false);
+    // Mark initial load done — from here stale data stays visible
+    setInitialLoad(false);
   }, [supabase]);
 
   useEffect(() => {
@@ -256,14 +261,19 @@ export default function DashboardPage() {
 
   const profitFactorDisplay = metrics.profitFactor === Infinity ? "∞" : metrics.profitFactor.toFixed(2);
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <div className="space-y-6 animate-fade-in">
         <Skeleton className="h-20 w-full" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
         </div>
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-72 w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <Skeleton className="lg:col-span-5 h-52" />
+          <Skeleton className="lg:col-span-3 h-52" />
+          <Skeleton className="lg:col-span-4 h-52" />
+        </div>
       </div>
     );
   }
@@ -338,30 +348,86 @@ export default function DashboardPage() {
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 animate-stagger">
-        {[
-          { label: "Today's P&L", value: `${todayPnl >= 0 ? "+" : ""}${formatCurrency(todayPnl)}`, sub: `${todayTrades.length} trades`, color: todayPnl >= 0 ? "text-profit" : "text-loss", icon: DollarSign },
-          { label: "Monthly Target", value: `${monthPnl >= 0 ? "+" : ""}${formatCurrency(monthPnl)}`, sub: `${monthTargetPct}% of ${formatCurrency(monthlyTarget)}`, color: monthPnl >= 0 ? "text-profit" : "text-loss", icon: Target, progress: monthTargetPct },
-          { label: "Win Rate", value: `${(metrics.winRate * 100).toFixed(1)}%`, sub: `${metrics.wins}W / ${metrics.losses}L`, color: "text-brand", icon: BarChart3 },
-          { label: "Profit Factor", value: profitFactorDisplay, sub: metrics.profitFactor >= 1.5 ? "Healthy edge" : "Build edge", color: metrics.profitFactor >= 1.5 ? "text-emerald-400" : "text-amber-400", icon: Shield },
-          { label: "Max Drawdown", value: `-${formatCurrency(drawdown.maxDrawdown)}`, sub: `${(drawdown.maxDrawdownPct * 100).toFixed(1)}% peak`, color: "text-loss", icon: Activity },
-          { label: "Streak", value: `${streak.count}`, sub: streak.type === "win" ? "Win streak 🔥" : streak.type === "loss" ? "Loss streak" : "No streak", color: streak.type === "win" ? "text-profit" : "text-foreground", icon: Flame },
-        ].map((kpi) => (
-          <Card key={kpi.label} className="card-hover">
-            <CardContent className="p-3.5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <kpi.icon className="w-3 h-3 text-foreground-subtle" />
-                <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">{kpi.label}</span>
-              </div>
-              <p className={cn("text-xl font-extrabold font-mono tabular", kpi.color)}>{kpi.value}</p>
-              {"progress" in kpi && kpi.progress != null && (
-                <div className="h-1 rounded-full bg-surface-3 overflow-hidden mt-1.5">
-                  <div className="h-full bg-gradient-to-r from-brand to-profit rounded-full transition-all duration-700" style={{ width: `${kpi.progress}%` }} />
-                </div>
-              )}
-              <p className="text-[9px] text-foreground-muted mt-1">{kpi.sub}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card className="card-hover">
+          <CardContent className="p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <DollarSign className="w-3 h-3 text-foreground-subtle" />
+              <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Today&apos;s P&L</span>
+            </div>
+            <p className={cn("text-xl font-extrabold font-mono", todayPnl >= 0 ? "text-profit" : "text-loss")}>
+              {todayPnl >= 0 ? "+" : ""}<AnimatedCounter value={todayPnl} format="currency" />
+            </p>
+            <p className="text-[9px] text-foreground-muted mt-1">{todayTrades.length} trades today</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardContent className="p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Target className="w-3 h-3 text-foreground-subtle" />
+              <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Monthly P&L</span>
+            </div>
+            <p className={cn("text-xl font-extrabold font-mono", monthPnl >= 0 ? "text-profit" : "text-loss")}>
+              {monthPnl >= 0 ? "+" : ""}<AnimatedCounter value={monthPnl} format="currency" />
+            </p>
+            <div className="h-1 rounded-full bg-surface-3 overflow-hidden mt-1.5">
+              <div className="h-full bg-gradient-to-r from-brand to-profit rounded-full transition-all duration-700" style={{ width: `${monthTargetPct}%` }} />
+            </div>
+            <p className="text-[9px] text-foreground-muted mt-1">{monthTargetPct}% of {formatCurrency(monthlyTarget)} target</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardContent className="p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <BarChart3 className="w-3 h-3 text-foreground-subtle" />
+              <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Win Rate</span>
+            </div>
+            <p className="text-xl font-extrabold font-mono text-brand">
+              <AnimatedCounter value={metrics.winRate * 100} format="decimal" decimals={1} />%
+            </p>
+            <p className="text-[9px] text-foreground-muted mt-1">{metrics.wins}W / {metrics.losses}L</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardContent className="p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Shield className="w-3 h-3 text-foreground-subtle" />
+              <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Profit Factor</span>
+            </div>
+            <p className={cn("text-xl font-extrabold font-mono", metrics.profitFactor >= 1.5 ? "text-emerald-400" : "text-amber-400")}>
+              {metrics.profitFactor === Infinity ? "∞" : <AnimatedCounter value={metrics.profitFactor} format="decimal" decimals={2} />}
+            </p>
+            <p className="text-[9px] text-foreground-muted mt-1">{metrics.profitFactor >= 1.5 ? "Healthy edge" : "Build edge"}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardContent className="p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Activity className="w-3 h-3 text-foreground-subtle" />
+              <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Max Drawdown</span>
+            </div>
+            <p className="text-xl font-extrabold font-mono text-loss">
+              -<AnimatedCounter value={drawdown.maxDrawdown} format="currency" />
+            </p>
+            <p className="text-[9px] text-foreground-muted mt-1">{(drawdown.maxDrawdownPct * 100).toFixed(1)}% from peak</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardContent className="p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Flame className="w-3 h-3 text-foreground-subtle" />
+              <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Streak</span>
+            </div>
+            <p className={cn("text-xl font-extrabold font-mono", streak.type === "win" ? "text-profit" : "text-foreground")}>
+              <AnimatedCounter value={streak.count} format="number" />
+            </p>
+            <p className="text-[9px] text-foreground-muted mt-1">{streak.type === "win" ? "Win streak 🔥" : streak.type === "loss" ? "Loss streak" : "No streak"}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Weekly Velocity + R-Multiple + Confluence Edge */}
@@ -374,19 +440,27 @@ export default function DashboardPage() {
             </CardTitle>
             <CardDescription>Daily P&amp;L pulse · {greenDayStreak > 0 ? `${greenDayStreak}-day green streak 🔥` : "Build momentum"}</CardDescription>
           </CardHeader>
-          <CardContent className="h-44 pt-1">
+          <CardContent className="h-48 pt-1">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyVelocity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="label" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <BarChart data={weeklyVelocity} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.5} />
+                <XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }}
-                  formatter={(val, _n, p) => [`${formatCurrency(Number(val))} · ${(p?.payload as { trades?: number })?.trades ?? 0} trades`, "P&L"]}
+                  cursor={{ fill: "var(--surface-2)", radius: 4 }}
+                  content={<ChartTooltip
+                    labelFormatter={(l) => String(l)}
+                    formatter={(val, _n) => [formatCurrency(Number(val)), "P&L"]}
+                    colorBySign
+                  />}
                 />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="pnl" radius={[6, 6, 2, 2]}>
                   {weeklyVelocity.map((entry, i) => (
-                    <Cell key={i} fill={entry.pnl >= 0 ? "#34d399" : "#fb7185"} />
+                    <Cell
+                      key={i}
+                      fill={entry.pnl >= 0 ? "#34d399" : "#fb7185"}
+                      fillOpacity={0.9}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -401,22 +475,28 @@ export default function DashboardPage() {
               R-Multiple Distribution
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1.5 max-h-44 overflow-y-auto">
+          <CardContent className="space-y-2 max-h-48 overflow-y-auto">
             {rBuckets.every((b) => b.count === 0) ? (
-              <p className="text-xs text-foreground-subtle text-center py-6">Add R-multiples to trades.</p>
+              <EmptyState
+                icon={Target}
+                title="No R-Multiples yet"
+                description="Add R values to your trades to see distribution."
+                size="sm"
+              />
             ) : (
               rBuckets.map((b) => {
                 const max = Math.max(...rBuckets.map((x) => x.count), 1);
+                const isLoss = b.label.includes("-");
                 return (
                   <div key={b.label} className="flex items-center gap-2 text-[10px]">
                     <span className="w-16 font-mono text-foreground-subtle shrink-0">{b.label}</span>
                     <div className="h-2 flex-1 rounded-full bg-surface-3 overflow-hidden">
                       <div
-                        className={cn("h-full rounded-full", b.label.includes("-") ? "bg-loss/70" : "bg-profit/70")}
+                        className={cn("h-full rounded-full transition-all duration-500", isLoss ? "bg-loss/70" : "bg-profit/80")}
                         style={{ width: `${(b.count / max) * 100}%` }}
                       />
                     </div>
-                    <span className="w-4 font-mono font-bold text-brand">{b.count}</span>
+                    <span className={cn("w-4 font-mono font-bold", isLoss ? "text-loss" : "text-profit")}>{b.count}</span>
                   </div>
                 );
               })
@@ -434,7 +514,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {confluenceEdge.length === 0 ? (
-              <p className="text-xs text-foreground-subtle text-center py-6">Tag FVG, Liquidity Sweep, Fib Golden Zone on trades.</p>
+              <EmptyState
+                icon={Layers}
+                title="No confluence data"
+                description="Tag FVG, Liquidity Sweep, Fib on trades to unlock edge matrix."
+                size="sm"
+              />
             ) : (
               confluenceEdge.map((c) => (
                 <div key={c.tag} className="flex items-center justify-between p-2 rounded-lg border border-border bg-surface-2/30 text-xs">
@@ -452,42 +537,60 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Equity Curve */}
-      <Card className="card-hover">
-        <CardHeader className="pb-2">
+      {/* Equity Curve — Hero visual */}
+      <Card className="card-hover border-brand/15 relative overflow-hidden">
+        <div className="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
+        <CardHeader className="pb-2 relative">
           <CardTitle className="text-sm flex items-center justify-between">
             <span className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-brand" />
-              Cumulative Equity Growth
+              Cumulative Equity Curve
             </span>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px]">Expectancy {formatCurrency(metrics.expectancy)}/trade</Badge>
-              <Badge variant="brand" className="text-[10px]">Live</Badge>
+              <Badge variant="outline" className="text-[10px]">Expectancy <AnimatedCounter value={metrics.expectancy} format="currency" className="ml-1" />/trade</Badge>
+              <Badge variant="brand" className="text-[10px] animate-pulse">● Live</Badge>
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-56 pt-2">
+        <CardContent className="h-72 pt-2 relative">
           {equityCurve.length === 0 ? (
-            <div className="h-full flex items-center justify-center border border-dashed border-border rounded-lg">
-              <p className="text-xs text-foreground-subtle">Close trades to generate your equity curve.</p>
-            </div>
+            <EmptyState
+              icon={TrendingUp}
+              title="No equity curve yet"
+              description="Close your first trade to start building your equity curve."
+              action={{ label: "Log a trade", href: "/dashboard/journal" }}
+            />
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={equityCurve}>
                 <defs>
                   <linearGradient id="dashEqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
+                    <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
+                <XAxis dataKey="date" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} width={56} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }}
-                  formatter={(val) => [formatCurrency(Number(val)), "Cumulative P&L"]}
+                  cursor={{ stroke: "var(--brand)", strokeWidth: 1, strokeDasharray: "4 4" }}
+                  content={<ChartTooltip
+                    labelFormatter={(l) => `Trade ${l}`}
+                    formatter={(val) => [formatCurrency(Number(val)), "Cumulative P&L"]}
+                    colorBySign
+                  />}
                 />
-                <Area type="monotone" dataKey="equity" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#dashEqGrad)" dot={false} />
+                <Area
+                  type="monotone"
+                  dataKey="equity"
+                  stroke="#6366f1"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#dashEqGrad)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           )}
@@ -515,9 +618,13 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-2 max-h-[340px] overflow-y-auto">
             {strategyBreakdown.length === 0 ? (
-              <div className="py-10 text-center border border-dashed border-border rounded-lg">
-                <p className="text-xs text-foreground-subtle">Log trades with setups (TJL 1, TJL 2 A+) to unlock strategy analytics.</p>
-              </div>
+              <EmptyState
+                icon={Layers}
+                title="No strategies yet"
+                description="Log trades with setup tags (TJL 1, TJL 2 A+) to unlock strategy analytics."
+                action={{ label: "Log a trade", href: "/dashboard/journal" }}
+                size="sm"
+              />
             ) : (
               strategyBreakdown.map((s) => (
                 <div key={s.setup} className="p-3 rounded-lg border border-border bg-surface-2/30 space-y-2">
@@ -555,7 +662,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {sessionBreakdown.length === 0 ? (
-              <p className="text-xs text-foreground-subtle text-center py-6">Tag session on trades.</p>
+              <EmptyState
+                icon={Globe}
+                title="No session data"
+                description="Tag London, NY, or Asian session on your trades."
+                size="sm"
+              />
             ) : (
               sessionBreakdown.map((s) => (
                 <div key={s.key} className="space-y-1">
@@ -661,8 +773,14 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {recentTrades.length === 0 ? (
-                <p className="text-xs text-foreground-subtle text-center py-4">No closed trades yet.</p>
-              ) : (
+              <EmptyState
+                icon={Clock}
+                title="No trades yet"
+                description="Your recent executions will appear here."
+                action={{ label: "Log first trade", href: "/dashboard/journal" }}
+                size="sm"
+              />
+            ) : (
                 recentTrades.map((t) => (
                   <div key={t.id} className="flex items-center justify-between text-xs p-2 rounded-lg border border-border/50 bg-surface-2/20">
                     <div className="flex items-center gap-2">

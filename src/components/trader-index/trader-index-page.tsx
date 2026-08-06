@@ -19,10 +19,9 @@ import type { Trade } from "@/lib/journal/types";
 
 export function TraderIndexPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
     const res = await getTrades();
     let data = res.data ?? [];
     const activeAccId =
@@ -31,7 +30,7 @@ export function TraderIndexPage() {
       data = data.filter((t) => (t as Trade & { account_id?: string }).account_id === activeAccId);
     }
     setTrades(data);
-    setLoading(false);
+    setInitialLoad(false);
   }, []);
 
   useEffect(() => {
@@ -46,7 +45,7 @@ export function TraderIndexPage() {
     [trades],
   );
 
-  if (loading) {
+  if (initialLoad) {
     return (
       <div className="space-y-6 animate-fade-in">
         <Skeleton className="h-14 w-full" />

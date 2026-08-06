@@ -19,13 +19,12 @@ import { PageTransition } from "@/components/ui/motion";
 
 export default function JournalPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError(null);
     const result = await getTrades();
     if (result.error) {
@@ -38,7 +37,7 @@ export default function JournalPage() {
       }
       setTrades(data);
     }
-    setLoading(false);
+    setInitialLoad(false);
   }, []);
 
   useEffect(() => {
@@ -123,7 +122,7 @@ export default function JournalPage() {
         </Card>
       )}
 
-      {loading ? (
+      {initialLoad ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full" />
