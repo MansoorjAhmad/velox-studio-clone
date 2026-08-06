@@ -50,6 +50,7 @@ export async function createTrade(
     ...input,
     user_id: user.id,
     // Coerce empty strings to null for numeric columns.
+    account_id: input.account_id ?? null,
     exit_price: input.exit_price ?? null,
     stop_loss: input.stop_loss ?? null,
     take_profit: input.take_profit ?? null,

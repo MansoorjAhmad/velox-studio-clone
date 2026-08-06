@@ -60,7 +60,9 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
   useEffect(() => {
     const load = async () => {
       const res = await getTradingAccounts();
-      const list = res.data ?? [];
+      const remote = res.data ?? [];
+      const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+      const list = [...remote, ...local];
       setAccounts(list);
 
       const saved = localStorage.getItem("velox_active_account_id");
@@ -73,6 +75,14 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
       }
     };
     load();
+
+    const handleAccountsChanged = () => load();
+    window.addEventListener("trading_accounts_changed", handleAccountsChanged);
+    window.addEventListener("active_account_changed", handleAccountsChanged);
+    return () => {
+      window.removeEventListener("trading_accounts_changed", handleAccountsChanged);
+      window.removeEventListener("active_account_changed", handleAccountsChanged);
+    };
   }, []);
 
   const handleSelectAccount = (id: string) => {

@@ -39,6 +39,7 @@ export interface Trade {
   // Meta
   notes: string | null;
   status: "open" | "closed" | "breakeven";
+  account_id?: string | null;
 
   // Timestamps
   entry_time: string;

@@ -27,7 +27,10 @@ import {
   type TradeInput,
 } from "@/lib/journal/types";
 import { createTrade, updateTrade } from "@/lib/journal/actions";
-import { TrendingUp, TrendingDown, Loader2, Check, Plus, X } from "lucide-react";
+import { getTradingAccounts } from "@/lib/accounts/actions";
+import type { TradingAccount } from "@/lib/accounts/types";
+import { useEffect } from "react";
+import { TrendingUp, TrendingDown, Loader2, Check, Plus, X, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EMOTIONS = [...COMMON_EMOTIONS];
@@ -46,6 +49,30 @@ export function TradeForm({
   onSaved?: () => void;
   onCancel?: () => void;
 }) {
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [accountId, setAccountId] = useState<string>(initial?.account_id ?? "");
+
+  useEffect(() => {
+    const loadAccs = async () => {
+      const res = await getTradingAccounts();
+      const remote = res.data ?? [];
+      const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+      const list = [...remote, ...local];
+      setAccounts(list);
+
+      if (!initial?.account_id) {
+        const activeId = localStorage.getItem("velox_active_account_id");
+        if (activeId && activeId !== "all" && list.some((a) => a.id === activeId)) {
+          setAccountId(activeId);
+        } else if (list.length > 0) {
+          const defaultAcc = list.find((a) => a.is_default) ?? list[0];
+          setAccountId(defaultAcc.id);
+        }
+      }
+    };
+    loadAccs();
+  }, [initial]);
+
   const [direction, setDirection] = useState<"LONG" | "SHORT">(
     initial?.direction ?? "LONG",
   );
@@ -219,6 +246,7 @@ export function TradeForm({
     const payload: TradeInput = {
       symbol: symbol.trim().toUpperCase(),
       direction,
+      account_id: accountId || null,
       entry_price: parseFloat(entryPrice),
       exit_price: effectiveExit ? parseFloat(effectiveExit) : null,
       stop_loss: stopLoss ? parseFloat(stopLoss) : null,
@@ -302,6 +330,29 @@ export function TradeForm({
           <CardTitle className="text-sm">Trade Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Account Selector */}
+          {accounts.length > 0 && (
+            <div className="space-y-1.5 p-3 rounded-lg border border-border/80 bg-surface-2/40">
+              <Label htmlFor="account" className="flex items-center gap-1.5 text-xs font-semibold">
+                <Wallet className="w-3.5 h-3.5 text-brand" />
+                Trading Account
+              </Label>
+              <Select
+                id="account"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full bg-surface text-xs font-medium"
+              >
+                <option value="">No specific account</option>
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.account_type.toUpperCase()} · {acc.broker || "No broker"})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="symbol">Symbol *</Label>

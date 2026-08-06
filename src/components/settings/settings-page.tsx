@@ -169,6 +169,7 @@ export function SettingsPage() {
       setAccName("");
       setAccBroker("");
       setAccNumber("");
+      window.dispatchEvent(new Event("trading_accounts_changed"));
       return;
     }
 
@@ -177,6 +178,7 @@ export function SettingsPage() {
     setAccBroker("");
     setAccNumber("");
     await loadAccounts();
+    window.dispatchEvent(new Event("trading_accounts_changed"));
   };
 
   const handleDeleteAccount = async (id: string) => {
@@ -185,10 +187,12 @@ export function SettingsPage() {
       const filtered = localAccs.filter((a: any) => a.id !== id);
       localStorage.setItem("velox_local_accounts", JSON.stringify(filtered));
       setAccounts((prev) => prev.filter((a) => a.id !== id));
+      window.dispatchEvent(new Event("trading_accounts_changed"));
       return;
     }
     await deleteTradingAccount(id);
     await loadAccounts();
+    window.dispatchEvent(new Event("trading_accounts_changed"));
   };
 
   const handleSetDefault = async (id: string) => {

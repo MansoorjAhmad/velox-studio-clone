@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { cn, formatCurrency, timeAgo } from "@/lib/utils";
 import type { Trade } from "@/lib/journal/types";
+import { getTradingAccounts } from "@/lib/accounts/actions";
+import type { TradingAccount } from "@/lib/accounts/types";
+import { useEffect } from "react";
 
 type SortKey =
   | "entry_time"
@@ -47,6 +50,23 @@ export function TradeList({
   const [viewing, setViewing] = useState<Trade | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Trade | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+
+  useEffect(() => {
+    const loadAccs = async () => {
+      const res = await getTradingAccounts();
+      const remote = res.data ?? [];
+      const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+      setAccounts([...remote, ...local]);
+    };
+    loadAccs();
+  }, []);
+
+  const accountMap = useMemo(() => {
+    const map = new Map<string, TradingAccount>();
+    accounts.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [accounts]);
 
   const setups = useMemo(
     () =>
@@ -225,7 +245,16 @@ export function TradeList({
                   onClick={() => setViewing(t)}
                   className="border-t border-border hover:bg-surface-2/50 transition-colors group cursor-pointer"
                 >
-                  <td className="px-3 py-3 font-medium tabular">{t.symbol}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-foreground">{t.symbol}</span>
+                      {t.account_id && accountMap.has(t.account_id) && (
+                        <span className="text-[9px] font-mono font-medium text-brand">
+                          {accountMap.get(t.account_id)!.name}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-3 py-3">
                     <Badge
                       variant={t.direction === "LONG" ? "profit" : "loss"}
