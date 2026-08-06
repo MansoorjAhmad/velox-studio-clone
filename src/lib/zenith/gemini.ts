@@ -78,7 +78,8 @@ Your analysis MUST cover:
 2. **Biggest Strength** — What they are genuinely doing well (cite specific numbers)
 3. **Hidden Pattern** — A non-obvious pattern in their data they may not have noticed
 4. **Risk Discipline** — Are they respecting their risk rules? Name specific violations if any.
-5. **This Week's Focus** — One concrete, measurable thing to focus on this week only.
+5. **Account Breakdown** — If multiple trading accounts exist, cite performance & rule adherence per account.
+6. **This Week's Focus** — One concrete, measurable thing to focus on this week only.
 
 Rules for your response:
 - Use **bold** for key insights

@@ -41,6 +41,7 @@ export function TradeList({
 }) {
   const [search, setSearch] = useState("");
   const [filterDir, setFilterDir] = useState("");
+  const [filterOutcome, setFilterOutcome] = useState<"" | "wins" | "losses">("");
   const [filterSetup, setFilterSetup] = useState("");
   const [filterSession, setFilterSession] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("entry_time");
@@ -89,6 +90,8 @@ export function TradeList({
       );
     }
     if (filterDir) list = list.filter((t) => t.direction === filterDir);
+    if (filterOutcome === "wins") list = list.filter((t) => (t.pnl ?? 0) > 0);
+    if (filterOutcome === "losses") list = list.filter((t) => (t.pnl ?? 0) < 0);
     if (filterSetup) list = list.filter((t) => t.setup === filterSetup);
     if (filterSession)
       list = list.filter((t) => t.session === filterSession);
@@ -165,7 +168,42 @@ export function TradeList({
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Quick Filter Pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-foreground-subtle shrink-0 mr-1">Quick Filters:</span>
+        <button
+          onClick={() => { setFilterDir(""); setFilterOutcome(""); setFilterSetup(""); setFilterSession(""); setSearch(""); }}
+          className={cn("px-2.5 py-1 rounded-full border transition-all font-semibold shrink-0", !filterDir && !filterOutcome && !filterSetup && !filterSession && !search ? "bg-brand text-white border-brand shadow-sm" : "border-border bg-surface-2/40 text-foreground-muted hover:text-foreground")}
+        >
+          All ({trades.length})
+        </button>
+        <button
+          onClick={() => { setFilterOutcome((v) => (v === "wins" ? "" : "wins")); }}
+          className={cn("px-2.5 py-1 rounded-full border transition-all font-semibold shrink-0", filterOutcome === "wins" ? "bg-profit/20 text-profit border-profit/40" : "border-border bg-surface-2/40 text-foreground-muted hover:text-foreground")}
+        >
+          🟢 Wins ({trades.filter((t) => (t.pnl ?? 0) > 0).length})
+        </button>
+        <button
+          onClick={() => { setFilterOutcome((v) => (v === "losses" ? "" : "losses")); }}
+          className={cn("px-2.5 py-1 rounded-full border transition-all font-semibold shrink-0", filterOutcome === "losses" ? "bg-loss/20 text-loss border-loss/40" : "border-border bg-surface-2/40 text-foreground-muted hover:text-foreground")}
+        >
+          🔴 Losses ({trades.filter((t) => (t.pnl ?? 0) < 0).length})
+        </button>
+        <button
+          onClick={() => { setFilterDir((v) => (v === "LONG" ? "" : "LONG")); }}
+          className={cn("px-2.5 py-1 rounded-full border transition-all font-semibold shrink-0", filterDir === "LONG" ? "bg-profit/20 text-profit border-profit/40" : "border-border bg-surface-2/40 text-foreground-muted hover:text-foreground")}
+        >
+          ▲ Longs ({trades.filter((t) => t.direction === "LONG").length})
+        </button>
+        <button
+          onClick={() => { setFilterDir((v) => (v === "SHORT" ? "" : "SHORT")); }}
+          className={cn("px-2.5 py-1 rounded-full border transition-all font-semibold shrink-0", filterDir === "SHORT" ? "bg-loss/20 text-loss border-loss/40" : "border-border bg-surface-2/40 text-foreground-muted hover:text-foreground")}
+        >
+          ▼ Shorts ({trades.filter((t) => t.direction === "SHORT").length})
+        </button>
+      </div>
+
+      {/* Search & Select Controls */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground-subtle" />

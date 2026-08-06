@@ -62,6 +62,7 @@ import {
   Tooltip,
   CartesianGrid,
   Cell,
+  ReferenceLine,
 } from "recharts";
 
 export default function DashboardPage() {
@@ -69,6 +70,7 @@ export default function DashboardPage() {
   const [username, setUsername] = useState("");
   const [trades, setTrades] = useState<Trade[]>([]);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [activeAccId, setActiveAccId] = useState<string>("all");
   // initialLoad = true only on first mount — shows skeleton
   // After first data arrives, we keep stale data visible on refetch
   const [initialLoad, setInitialLoad] = useState(true);
@@ -81,12 +83,18 @@ export default function DashboardPage() {
     }
 
     const [result, accountsResult] = await Promise.all([getTrades(), getTradingAccounts()]);
-    setAccounts(accountsResult.data ?? []);
+    const remoteAccs = accountsResult.data ?? [];
+    const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+    const allAccs = [...remoteAccs, ...localAccs];
+    setAccounts(allAccs);
+
+    const savedAccId = localStorage.getItem("velox_active_account_id") || "all";
+    setActiveAccId(savedAccId);
+
     if (!result.error) {
       let data = result.data ?? [];
-      const activeAccId = localStorage.getItem("velox_active_account_id");
-      if (activeAccId && activeAccId !== "all") {
-        data = data.filter((t) => (t as Trade & { account_id?: string }).account_id === activeAccId);
+      if (savedAccId && savedAccId !== "all") {
+        data = data.filter((t) => (t as Trade & { account_id?: string }).account_id === savedAccId);
       }
       setTrades(data);
     }
@@ -312,6 +320,33 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Account Filter Sync Banner */}
+      {activeAccId !== "all" && (
+        (() => {
+          const activeAcc = accounts.find((a) => a.id === activeAccId);
+          return (
+            <div className="flex items-center justify-between p-3 rounded-xl border border-brand/25 bg-brand/10 backdrop-blur-md animate-fade-in text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "#6366f1" }} />
+                <span className="font-semibold text-foreground">
+                  Showing stats for: <span className="text-brand font-bold">{activeAcc ? activeAcc.name : "Selected Account"}</span>
+                  {activeAcc && ` (${activeAcc.account_type.toUpperCase()} · Initial: ${formatCurrency(activeAcc.initial_balance)})`}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem("velox_active_account_id", "all");
+                  window.dispatchEvent(new Event("active_account_changed"));
+                }}
+                className="text-[10px] text-foreground-subtle hover:text-foreground underline font-mono"
+              >
+                Reset to All Accounts
+              </button>
+            </div>
+          );
+        })()
+      )}
 
       {/* Live Market Prices */}
       <LivePriceWidget />
@@ -578,6 +613,14 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
                 <XAxis dataKey="date" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} width={56} />
+                {monthlyTarget > 0 && (
+                  <ReferenceLine
+                    y={monthlyTarget}
+                    stroke="#34d399"
+                    strokeDasharray="4 4"
+                    label={{ value: `Target: $${monthlyTarget}`, fill: "#34d399", fontSize: 10, position: "top" }}
+                  />
+                )}
                 <Tooltip
                   cursor={{ stroke: "var(--brand)", strokeWidth: 1, strokeDasharray: "4 4" }}
                   content={<ChartTooltip

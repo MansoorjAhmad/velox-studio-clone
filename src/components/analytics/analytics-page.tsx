@@ -55,19 +55,32 @@ import {
   CartesianGrid,
   Cell,
   Brush,
+  ReferenceLine,
 } from "recharts";
+import { getTradingAccounts } from "@/lib/accounts/actions";
+import type { TradingAccount } from "@/lib/accounts/types";
+import { getTradingConfig } from "@/lib/trading-config";
 
 export function AnalyticsPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [accounts, setAccounts] = useState<TradingAccount[]>([]);
+  const [activeAccId, setActiveAccId] = useState<string>("all");
   const [initialLoad, setInitialLoad] = useState(true);
   const [timeframe, setTimeframe] = useState<"7D" | "30D" | "90D" | "ALL">("30D");
 
   const load = useCallback(async () => {
-    const res = await getTrades();
-    let data = res.data ?? [];
-    const activeAccId = localStorage.getItem("velox_active_account_id");
-    if (activeAccId && activeAccId !== "all") {
-      data = data.filter((t: any) => t.account_id === activeAccId);
+    const [tradesRes, accsRes] = await Promise.all([getTrades(), getTradingAccounts()]);
+    const remoteAccs = accsRes.data ?? [];
+    const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+    const allAccs = [...remoteAccs, ...localAccs];
+    setAccounts(allAccs);
+
+    const savedAccId = localStorage.getItem("velox_active_account_id") || "all";
+    setActiveAccId(savedAccId);
+
+    let data = tradesRes.data ?? [];
+    if (savedAccId && savedAccId !== "all") {
+      data = data.filter((t: any) => t.account_id === savedAccId);
     }
     setTrades(data);
     setInitialLoad(false);
@@ -240,6 +253,33 @@ export function AnalyticsPage() {
           </div>
         </div>
       </FadeIn>
+
+      {/* Account Filter Sync Banner */}
+      {activeAccId !== "all" && (
+        (() => {
+          const activeAcc = accounts.find((a) => a.id === activeAccId);
+          return (
+            <div className="flex items-center justify-between p-3 rounded-xl border border-brand/25 bg-brand/10 backdrop-blur-md animate-fade-in text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "#6366f1" }} />
+                <span className="font-semibold text-foreground">
+                  Analytics filtered for: <span className="text-brand font-bold">{activeAcc ? activeAcc.name : "Selected Account"}</span>
+                  {activeAcc && ` (${activeAcc.account_type.toUpperCase()} · Initial: ${formatCurrency(activeAcc.initial_balance)})`}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem("velox_active_account_id", "all");
+                  window.dispatchEvent(new Event("active_account_changed"));
+                }}
+                className="text-[10px] text-foreground-subtle hover:text-foreground underline font-mono"
+              >
+                Reset to All Accounts
+              </button>
+            </div>
+          );
+        })()
+      )}
 
       {/* ═══ PRIMARY KPI ROW ═══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger">
