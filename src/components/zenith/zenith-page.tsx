@@ -41,6 +41,7 @@ import {
   type LocalInsight,
 } from "@/lib/zenith/local-insights";
 import { getAiInsights } from "@/lib/zenith/insights-client";
+import { detectPatterns, weeklyPerformanceSummary } from "@/lib/zenith/gemini";
 import { ZenithDepth } from "@/components/zenith/zenith-depth";
 import {
   AreaChart,
@@ -60,6 +61,14 @@ export function ZenithPage() {
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  // Pattern detection state
+  const [patterns, setPatterns] = useState<string | null>(null);
+  const [patternsLoading, setPatternsLoading] = useState(false);
+
+  // Weekly summary state
+  const [weeklySummary, setWeeklySummary] = useState<string | null>(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,6 +143,58 @@ export function ZenithPage() {
     }
   }, [metrics, drawdown, streak, setupBreakdown, sessionBreakdown]);
 
+  const fetchPatterns = useCallback(async () => {
+    setPatternsLoading(true);
+    const tradesJSON = JSON.stringify(
+      trades.slice(-50).map((t) => ({
+        date: t.entry_time,
+        symbol: t.symbol,
+        direction: t.direction,
+        session: t.session,
+        pnl: t.pnl,
+        rMultiple: t.r_multiple,
+        setup: t.setup,
+        holdMinutes: t.entry_time && t.exit_time
+          ? Math.round((new Date(t.exit_time).getTime() - new Date(t.entry_time).getTime()) / 60000)
+          : null,
+      })),
+      null, 2,
+    );
+    const result = await detectPatterns(tradesJSON);
+    setPatterns(result ?? "No patterns detected — log more trades first.");
+    setPatternsLoading(false);
+  }, [trades]);
+
+  const fetchWeeklySummary = useCallback(async () => {
+    setWeeklyLoading(true);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+    const weekTrades = trades.filter((t) =>
+      t.entry_time && new Date(t.entry_time) >= sevenDaysAgo,
+    );
+    const weekPnl = weekTrades.reduce((s, t) => s + (t.pnl ?? 0), 0);
+    const weekWins = weekTrades.filter((t) => (t.pnl ?? 0) > 0).length;
+    const weekDataJSON = JSON.stringify({
+      period: `${sevenDaysAgo.toISOString().split("T")[0]} to ${new Date().toISOString().split("T")[0]}`,
+      trades: weekTrades.length,
+      wins: weekWins,
+      losses: weekTrades.length - weekWins,
+      netPnl: weekPnl,
+      winRate: weekTrades.length > 0 ? ((weekWins / weekTrades.length) * 100).toFixed(1) : "0",
+      tradeLog: weekTrades.slice(-20).map((t) => ({
+        date: t.entry_time,
+        symbol: t.symbol,
+        direction: t.direction,
+        pnl: t.pnl,
+        setup: t.setup,
+        session: t.session,
+        rMultiple: t.r_multiple,
+      })),
+    }, null, 2);
+    const result = await weeklyPerformanceSummary(weekDataJSON);
+    setWeeklySummary(result ?? "Could not generate summary — check your API key.");
+    setWeeklyLoading(false);
+  }, [trades]);
+
   return (
     <PageTransition className="space-y-8">
       {/* Hero header */}
@@ -204,6 +265,51 @@ export function ZenithPage() {
             />
           </div>
 
+          {/* AI Action buttons row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              onClick={fetchAI}
+              disabled={aiLoading}
+              className="flex items-center gap-3 p-4 rounded-xl border border-brand/25 bg-brand/5 hover:bg-brand/10 hover:border-brand/40 transition-all text-left group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-brand/15 flex items-center justify-center shrink-0 group-hover:bg-brand/25 transition-colors">
+                {aiLoading ? <Loader2 className="w-4 h-4 text-brand animate-spin" /> : <Brain className="w-4 h-4 text-brand" />}
+              </div>
+              <div>
+                <p className="text-sm font-bold">Analyze Performance</p>
+                <p className="text-[10px] text-foreground-subtle">Full AI breakdown of your edge</p>
+              </div>
+            </button>
+
+            <button
+              onClick={fetchPatterns}
+              disabled={patternsLoading}
+              className="flex items-center gap-3 p-4 rounded-xl border border-amber-400/20 bg-amber-400/5 hover:bg-amber-400/10 hover:border-amber-400/35 transition-all text-left group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-amber-400/15 flex items-center justify-center shrink-0 group-hover:bg-amber-400/25 transition-colors">
+                {patternsLoading ? <Loader2 className="w-4 h-4 text-amber-400 animate-spin" /> : <Zap className="w-4 h-4 text-amber-400" />}
+              </div>
+              <div>
+                <p className="text-sm font-bold">Detect Patterns</p>
+                <p className="text-[10px] text-foreground-subtle">Hidden behavioral patterns</p>
+              </div>
+            </button>
+
+            <button
+              onClick={fetchWeeklySummary}
+              disabled={weeklyLoading}
+              className="flex items-center gap-3 p-4 rounded-xl border border-profit/20 bg-profit/5 hover:bg-profit/10 hover:border-profit/35 transition-all text-left group"
+            >
+              <div className="w-9 h-9 rounded-lg bg-profit/15 flex items-center justify-center shrink-0 group-hover:bg-profit/25 transition-colors">
+                {weeklyLoading ? <Loader2 className="w-4 h-4 text-profit animate-spin" /> : <Lightbulb className="w-4 h-4 text-profit" />}
+              </div>
+              <div>
+                <p className="text-sm font-bold">Summarize My Week</p>
+                <p className="text-[10px] text-foreground-subtle">7-day performance debrief</p>
+              </div>
+            </button>
+          </div>
+
           {/* AI Insight panel */}
           <Card glass className="border-brand/20">
             <CardHeader>
@@ -267,6 +373,52 @@ export function ZenithPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Pattern Detection Result Card */}
+          {patterns && (
+            <Card glass className="border-amber-400/20 bg-amber-400/5">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-400" />
+                    <CardTitle className="text-base">Detected Patterns</CardTitle>
+                    <Badge variant="outline" className="border-amber-400/30 text-amber-400 text-[10px]">Behavioral Analysis</Badge>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={fetchPatterns} className="text-xs">
+                    <RefreshCw className="w-3 h-3" /> Re-scan
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm prose-invert max-w-none text-sm leading-relaxed text-foreground-muted [&_strong]:text-foreground [&_b]:text-foreground whitespace-pre-wrap">
+                  {patterns}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Weekly Performance Summary Result Card */}
+          {weeklySummary && (
+            <Card glass className="border-profit/20 bg-profit/5">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-profit" />
+                    <CardTitle className="text-base">Weekly Performance Debrief</CardTitle>
+                    <Badge variant="profit" className="text-[10px]">7-Day Review</Badge>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={fetchWeeklySummary} className="text-xs">
+                    <RefreshCw className="w-3 h-3" /> Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm prose-invert max-w-none text-sm leading-relaxed text-foreground-muted [&_strong]:text-foreground [&_b]:text-foreground whitespace-pre-wrap">
+                  {weeklySummary}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Local insights */}
           <div>

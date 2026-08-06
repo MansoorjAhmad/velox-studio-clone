@@ -21,6 +21,8 @@ import { calculateTraderIndex } from "@/lib/journal/trader-index";
 import { getTradingConfig } from "@/lib/trading-config";
 import { TradingCalendarWidget } from "@/components/dashboard/trading-calendar-widget";
 import { TraderIndexGauge } from "@/components/dashboard/trader-index-gauge";
+import { LivePriceWidget } from "@/components/dashboard/live-price-widget";
+import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -311,7 +313,10 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Decision layer: turns descriptive metrics into the next execution constraint. */}
+      {/* Live Market Prices */}
+      <LivePriceWidget />
+
+      {/* Decision layer */}
       <Card className="command-grid signal-sweep border-brand/20 glass-subtle card-hover">
         <CardContent className="p-4 md:p-5 relative">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
@@ -688,10 +693,11 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Calendar + Today + Edge + Recent */}
+      {/* Calendar + Economic Calendar + Today + Edge + Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 space-y-6">
           <TradingCalendarWidget trades={trades} />
+          <EconomicCalendarWidget />
         </div>
 
         <div className="lg:col-span-5 space-y-4">
