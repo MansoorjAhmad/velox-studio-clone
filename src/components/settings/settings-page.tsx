@@ -69,7 +69,9 @@ export function SettingsPage() {
 
   const loadAccounts = async () => {
     const res = await getTradingAccounts();
-    setAccounts(res.data ?? []);
+    const remote = res.data ?? [];
+    const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+    setAccounts([...remote, ...local]);
   };
 
   useEffect(() => {
@@ -122,12 +124,16 @@ export function SettingsPage() {
     setTimeout(() => setConfigSaved(false), 2000);
   };
 
+  const [accError, setAccError] = useState<string | null>(null);
+
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accName.trim()) return;
 
     setCreatingAcc(true);
-    await createTradingAccount({
+    setAccError(null);
+
+    const res = await createTradingAccount({
       name: accName.trim(),
       broker: accBroker.trim() || null,
       account_number: accNumber.trim() || null,
@@ -139,6 +145,33 @@ export function SettingsPage() {
     });
 
     setCreatingAcc(false);
+
+    if (res.error) {
+      // If Supabase table isn't created or error occurs, fall back to local storage
+      const newAcc: TradingAccount = {
+        id: "local_" + Date.now(),
+        user_id: "local",
+        name: accName.trim(),
+        broker: accBroker.trim() || null,
+        account_number: accNumber.trim() || null,
+        currency,
+        initial_balance: parseFloat(accBalance) || 10000,
+        account_type: accType,
+        color: accColor,
+        is_default: accounts.length === 0,
+        created_at: new Date().toISOString(),
+      };
+      const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+      localAccs.push(newAcc);
+      localStorage.setItem("velox_local_accounts", JSON.stringify(localAccs));
+      setAccounts((prev) => [...prev, newAcc]);
+      setShowAddAccountModal(false);
+      setAccName("");
+      setAccBroker("");
+      setAccNumber("");
+      return;
+    }
+
     setShowAddAccountModal(false);
     setAccName("");
     setAccBroker("");
@@ -147,6 +180,13 @@ export function SettingsPage() {
   };
 
   const handleDeleteAccount = async (id: string) => {
+    if (id.startsWith("local_")) {
+      const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
+      const filtered = localAccs.filter((a: any) => a.id !== id);
+      localStorage.setItem("velox_local_accounts", JSON.stringify(filtered));
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      return;
+    }
     await deleteTradingAccount(id);
     await loadAccounts();
   };
