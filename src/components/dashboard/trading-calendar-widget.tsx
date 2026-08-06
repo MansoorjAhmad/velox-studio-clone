@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,30 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
   const [viewDate, setViewDate] = useState(() => new Date());
   const [selectedDayTrades, setSelectedDayTrades] = useState<Trade[] | null>(null);
   const [selectedDayStr, setSelectedDayStr] = useState("");
+
+  // Hover tooltip state
+  const [hoveredCell, setHoveredCell] = useState<{
+    cell: DayCell;
+    x: number;
+    y: number;
+    alignRight: boolean;
+  } | null>(null);
+
+  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLButtonElement>, cd: DayCell) => {
+    if (!cd.data) return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const alignRight = rect.right + 224 > window.innerWidth;
+    setHoveredCell({
+      cell: cd,
+      x: alignRight ? rect.left - 8 : rect.right + 8,
+      y: Math.min(rect.top, window.innerHeight - 200),
+      alignRight,
+    });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredCell(null);
+  }, []);
 
   const calendarPnlMap = useMemo(() => {
     const map = new Map<string, { pnl: number; count: number; wins: number; trades: Trade[] }>();
@@ -346,6 +370,8 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
                 <button
                   key={cd.dateStr}
                   type="button"
+                  onMouseEnter={(e) => handleMouseEnter(e, cd)}
+                  onMouseLeave={handleMouseLeave}
                   onClick={() => {
                     if (cd.data?.trades.length) {
                       setSelectedDayTrades(cd.data.trades);
@@ -363,11 +389,6 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
                     heat?.bg
                       ? { backgroundColor: heat.bg, borderColor: heat.border, boxShadow: heat.glow }
                       : undefined
-                  }
-                  title={
-                    cd.data
-                      ? `${cd.dateStr} · ${cd.data.count} trades · ${dayWr}% WR · ${formatCurrency(cd.data.pnl)}`
-                      : cd.dateStr
                   }
                 >
                   <div className="flex items-center justify-between">
@@ -458,6 +479,88 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
             ))}
           </div>
         </Modal>
+      )}
+
+      {/* Hover tooltip — premium floating card */}
+      {hoveredCell?.cell.data && (
+        <div
+          className="fixed z-50 pointer-events-none animate-fade-in"
+          style={{
+            left: hoveredCell.alignRight
+              ? hoveredCell.x - 212
+              : hoveredCell.x,
+            top: hoveredCell.y,
+          }}
+        >
+          <div className={cn(
+            "w-52 rounded-xl border border-border/80 shadow-2xl shadow-black/50",
+            "bg-surface/95 backdrop-blur-xl p-3.5",
+          )}>
+            {/* Date header */}
+            <p className="text-[11px] font-semibold text-foreground-subtle mb-2.5 uppercase tracking-wider">
+              {new Date(hoveredCell.cell.dateStr + "T00:00:00").toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              })}
+            </p>
+
+            {/* P&L — hero number */}
+            <p className={cn(
+              "text-xl font-extrabold font-mono tabular mb-2.5",
+              hoveredCell.cell.data.pnl >= 0 ? "text-profit" : "text-loss",
+            )}>
+              {hoveredCell.cell.data.pnl >= 0 ? "+" : ""}
+              {formatCurrency(hoveredCell.cell.data.pnl)}
+            </p>
+
+            {/* Divider */}
+            <div className="h-px bg-border/60 mb-2.5" />
+
+            {/* Stats grid */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-foreground-muted">Trades</span>
+                <span className="font-mono font-bold text-foreground">{hoveredCell.cell.data.count}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-foreground-muted">Win Rate</span>
+                <span className="font-mono font-bold text-brand">
+                  {hoveredCell.cell.data.count > 0
+                    ? Math.round((hoveredCell.cell.data.wins / hoveredCell.cell.data.count) * 100)
+                    : 0}%
+                </span>
+              </div>
+              {(() => {
+                const best = Math.max(...hoveredCell.cell.data.trades.map((t) => t.pnl ?? 0));
+                const worst = Math.min(...hoveredCell.cell.data.trades.map((t) => t.pnl ?? 0));
+                return (
+                  <>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-foreground-muted">Best trade</span>
+                      <span className="font-mono font-bold text-profit">+{formatCurrency(best)}</span>
+                    </div>
+                    {hoveredCell.cell.data.count > 1 && (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-foreground-muted">Worst trade</span>
+                        <span className={cn("font-mono font-bold", worst < 0 ? "text-loss" : "text-profit")}>
+                          {worst >= 0 ? "+" : ""}{formatCurrency(worst)}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Click hint */}
+            {hoveredCell.cell.data.count > 0 && (
+              <p className="text-[9px] text-foreground-subtle/60 mt-2.5 pt-2 border-t border-border/40">
+                Click to view trades
+              </p>
+            )}
+          </div>
+        </div>
       )}
     </>
   );
