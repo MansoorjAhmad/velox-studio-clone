@@ -181,7 +181,7 @@ export function TasksPage() {
             title="🔥 Urgent & Important"
             sub="Do First — Critical deadlines & trading actions"
             tasks={tasks.filter((t) => t.priority === "urgent" || t.priority === "high")}
-            borderColor="border-danger/30 bg-danger/[0.02]"
+            borderColor="border bg-surface-2"
             onChanged={load}
             onEdit={(t) => setEditingTask(t)}
           />
@@ -189,7 +189,7 @@ export function TasksPage() {
             title="🎯 Important (Long-Term)"
             sub="Schedule — Strategy rules, learning & goals"
             tasks={tasks.filter((t) => t.priority === "medium")}
-            borderColor="border-brand/30 bg-brand/[0.02]"
+            borderColor="border bg-surface-2"
             onChanged={load}
             onEdit={(t) => setEditingTask(t)}
           />
@@ -197,7 +197,7 @@ export function TasksPage() {
             title="⚡ Quick Wins / Delegate"
             sub="Do Next — Fast tasks & routine actions"
             tasks={tasks.filter((t) => t.priority === "low" && t.status !== "done")}
-            borderColor="border-warning/30 bg-warning/[0.02]"
+            borderColor="border bg-surface-2"
             onChanged={load}
             onEdit={(t) => setEditingTask(t)}
           />
@@ -205,7 +205,7 @@ export function TasksPage() {
             title="✅ Completed Archive"
             sub="Done — Finished items"
             tasks={tasks.filter((t) => t.status === "done")}
-            borderColor="border-profit/30 bg-profit/[0.02]"
+            borderColor="border bg-surface-2"
             onChanged={load}
             onEdit={(t) => setEditingTask(t)}
           />

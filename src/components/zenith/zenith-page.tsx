@@ -199,14 +199,14 @@ export function ZenithPage() {
     <PageTransition className="space-y-8">
       {/* Hero header */}
       <div className="relative overflow-hidden rounded-xl border border-brand/20 glass p-6">
-        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+
         <div className="relative flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-brand/15 flex items-center justify-center glow-brand">
+            <div className="w-12 h-12 rounded-lg bg-brand/15 flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-brand" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Velox Zenith</h1>
+              <h1 className="text-2xl font-bold font-display tracking-tight">Velox Zenith</h1>
               <p className="text-sm text-foreground-muted">
                 AI-powered analysis of your trading performance.
               </p>
@@ -701,7 +701,7 @@ function EmptyState() {
             the sharper the insights.
           </p>
           <a href="/dashboard/journal">
-            <Button className="glow-brand">
+            <Button>
               <Inbox className="w-4 h-4" />
               Open Journal
             </Button>

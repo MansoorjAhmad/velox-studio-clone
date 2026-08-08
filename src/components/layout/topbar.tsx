@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Bell, Menu, ChevronDown, ShieldCheck, Wallet, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 import { getTradingAccounts } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
 
@@ -218,8 +218,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
           <kbd className="inline-flex items-center rounded border border-border bg-surface px-1 py-0.5 font-mono text-[9px] text-foreground-subtle leading-none">Ctrl K</kbd>
         </button>
 
-        {/* Theme toggle */}
-        <ThemeToggle />
+
 
         {/* Notification bell → Trader Index (discipline alerts) */}
         <a

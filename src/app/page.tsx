@@ -50,15 +50,6 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="relative pt-28 pb-32 overflow-hidden">
-        {/* Aurora background */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-brand/15 blur-[150px] rounded-full" />
-          <div className="absolute top-40 right-1/4 w-[400px] h-[400px] bg-info/8 blur-[120px] rounded-full" />
-          <div className="absolute top-60 left-1/4 w-[400px] h-[400px] bg-profit/6 blur-[120px] rounded-full" />
-        </div>
-
-        {/* Subtle grid texture — adds depth behind aurora */}
-        <div className="absolute inset-0 bg-grid opacity-[0.035] pointer-events-none" />
 
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <FadeIn delay={0.05}>
@@ -73,7 +64,7 @@ export default function LandingPage() {
           </FadeIn>
 
           <FadeIn delay={0.12}>
-            <h1 className="text-display mb-6">
+            <h1 className="text-display font-display mb-6">
               Trade with the discipline of an institution.
             </h1>
           </FadeIn>
@@ -89,7 +80,7 @@ export default function LandingPage() {
           <FadeIn delay={0.28}>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16">
               <Link href="/auth/sign-up">
-                <Button size="lg" className="w-full sm:w-auto font-bold px-8 shadow-lg shadow-brand/25 glow-brand">
+                <Button size="lg" className="w-full sm:w-auto font-bold px-8 shadow-sm">
                   Start free
                   <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -120,7 +111,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <FadeIn whenInView>
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-h1 mb-4">Everything a serious trader needs.</h2>
+              <h2 className="text-h1 font-display mb-4">Everything a serious trader needs.</h2>
               <p className="text-foreground-muted text-base">
                 Not a spreadsheet. Not a toy. A full operating system built around one idea:
                 the disciplined trader wins.
@@ -183,15 +174,15 @@ export default function LandingPage() {
       <section id="discipline" className="py-24 border-t border-border/50 bg-surface/30">
         <div className="max-w-5xl mx-auto px-6">
           {/* Fix #1: use .glass on the hero spotlight panel */}
-          <div className="rounded-2xl border border-brand/25 glass p-8 md:p-12 relative overflow-hidden">
-            <div className="absolute inset-0 bg-dots opacity-30 pointer-events-none" />
+          <div className="rounded-2xl border border-border glass p-8 md:p-12 relative overflow-hidden">
+
             <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <FadeIn direction="right" className="lg:col-span-7 space-y-5" whenInView>
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand">
                   <Shield className="w-3 h-3" />
                   Trader Index
                 </div>
-                <h2 className="text-h2">A discipline score, not just a profit score.</h2>
+                <h2 className="text-h2 font-display">A discipline score, not just a profit score.</h2>
                 <p className="text-foreground-muted text-sm md:text-base leading-relaxed">
                   Profitable-but-reckless never lasts. The Trader Index measures four pillars
                   of discipline — risk consistency, rule adherence, emotional control, and
@@ -262,7 +253,7 @@ export default function LandingPage() {
               <Sparkles className="w-3 h-3" />
               Velox Zenith AI
             </div>
-            <h2 className="text-h1 mb-5">Your trades, read by an AI that doesn't lie.</h2>
+            <h2 className="text-h1 font-display mb-5">Your trades, read by an AI that doesn't lie.</h2>
             <p className="text-foreground-muted text-base max-w-2xl mx-auto mb-12 leading-relaxed">
               Zenith detects the patterns you can't see manually — "you lose 67% of trades
               after two consecutive losses" — narrates a weekly performance review, and
@@ -295,14 +286,14 @@ export default function LandingPage() {
       <section id="access" className="py-24 border-t border-border/50">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <FadeIn whenInView>
-            <h2 className="text-h1 mb-4">Built for traders who want to last.</h2>
+            <h2 className="text-h1 font-display mb-4">Built for traders who want to last.</h2>
             <p className="text-foreground-muted mb-10 max-w-lg mx-auto">
               Every feature, every module, unlimited trades. No credit card, no paywall,
               no nonsense.
             </p>
 
             <Link href="/auth/sign-up">
-              <Button size="lg" className="font-bold px-10 shadow-lg shadow-brand/25 glow-brand">
+              <Button size="lg" className="font-bold px-10 shadow-sm">
                 Launch your workspace
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>

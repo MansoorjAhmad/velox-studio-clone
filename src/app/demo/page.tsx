@@ -286,12 +286,12 @@ export default function DemoPage() {
         <Card className="border-2 border-brand bg-surface">
           <CardContent className="py-10 text-center space-y-4">
             <Sparkles className="w-8 h-8 text-brand mx-auto" />
-            <h2 className="text-2xl font-bold">Ready to track your real trades?</h2>
+            <h2 className="text-2xl font-bold font-display">Ready to track your real trades?</h2>
             <p className="text-sm text-foreground-muted max-w-md mx-auto">
               100% free. Pick your username and access your workspace instantly.
             </p>
             <Link href="/auth/sign-up">
-              <Button size="lg" className="bg-brand text-brand-foreground font-bold shadow-lg shadow-brand/25 glow-brand">
+              <Button size="lg" className="bg-brand text-brand-foreground font-bold shadow-sm">
                 Create Your Free Account
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>

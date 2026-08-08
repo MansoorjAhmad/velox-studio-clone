@@ -419,9 +419,7 @@ export function RoutinePage() {
               <Card
                 key={item.id}
                 className={cn(
-                  "transition-all border",
-                  isCompleted && "border-profit/30 bg-profit/[0.04]",
-                  isNotDone && "border-danger/30 bg-danger/[0.04]",
+                  "transition-all border bg-surface-2",
                   !status && "hover:border-border-strong",
                 )}
               >

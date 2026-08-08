@@ -333,7 +333,7 @@ function GoalCard({
       className={cn(
         "transition-all",
         goal.completed
-          ? "border-profit/20 bg-profit/[0.03] opacity-75"
+          ? "opacity-75 hover:border-border-strong"
           : "hover:border-border-strong",
       )}
     >

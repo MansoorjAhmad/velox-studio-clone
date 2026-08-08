@@ -1,99 +1,55 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   VELOX STUDIO — DESIGN SYSTEM v2
-   Dark-mode-first, pro-trader aesthetic.
-   Palette: deep neutrals + emerald (profit) / rose (loss) + brand accent.
+   VELOX STUDIO — DESIGN SYSTEM v3  "Parchment"
+   Light-only. Warm editorial feel — parchment surfaces, ink brand,
+   Fraunces display serif, Inter UI chrome, JetBrains Mono data.
    ═══════════════════════════════════════════════════════════════ */
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
-  /* Theme toggle defaults to dark for traders. */
-  color-scheme: dark;
-  --theme: dark;
-
-  /* — Surfaces (zinc scale, lifted) — */
-  --background: #07070a;          /* deeper than zinc-950 */
-  --surface:    #0f0f12;          /* raised cards */
-  --surface-2:  #16161a;          /* inputs, hovers */
-  --surface-3:  #1c1c21;          /* nested */
-
-  /* — Foreground / text — */
-  --foreground:        #f4f4f5;   /* zinc-100 — primary text */
-  --foreground-muted:  #a1a1aa;   /* zinc-400 — secondary text */
-  --foreground-subtle: #52525b;   /* zinc-600 — labels, captions */
-
-  /* — Borders & rings — */
-  --border:        #1f1f24;       /* tighter than zinc-800 */
-  --border-strong: #2e2e35;       /* zinc-700 */
-  --ring:          #4a4a55;       /* zinc-600 */
-
-  --input:   var(--surface-2);
-  --input-border: var(--border);
-
-  /* — Semantic: P&L (universal fintech language) — */
-  --profit:     #34d399;          /* emerald-400 */
-  --profit-soft:#34d3991a;
-  --loss:       #fb7185;          /* rose-400   */
-  --loss-soft:  #fb71851a;
-  --neutral:    #e4e4e7;          /* zinc-200   */
-
-  /* — Semantic: states — */
-  --success:    #34d399;
-  --warning:    #fbbf24;          /* amber-400  */
-  --danger:     #f43f5e;          /* rose-500   */
-  --info:       #60a5fa;          /* blue-400   */
-
-  /* — Brand accent (single, restrained) — */
-  --brand:        #6366f1;        /* indigo-500 */
-  --brand-hover:  #4f46e5;        /* indigo-600 */
-  --brand-soft:   #6366f118;
-  --brand-foreground: #ffffff;
-
-  /* — Radii — */
-  --radius:    0.625rem;
-  --radius-sm: 0.375rem;
-  --radius-lg: 0.875rem;
-  --radius-xl: 1.25rem;
-}
-
-/* ── Light Mode ─────────────────────────────────────────────────── */
-:root.light {
   color-scheme: light;
   --theme: light;
 
-  --background: #f4f4f6;
-  --surface:    #ffffff;
-  --surface-2:  #f0f0f3;
-  --surface-3:  #e8e8ec;
+  /* Surfaces — warm parchment, never pure white */
+  --background: #efece4;
+  --surface:    #f6f3e9;   /* raised cards, inputs */
+  --surface-2:  #e2ddc9;   /* row fill, secondary cards */
+  --surface-3:  #d8d3c4;   /* borders, dividers, hover */
 
-  --foreground:        #09090b;
-  --foreground-muted:  #52525b;
-  --foreground-subtle: #a1a1aa;
+  --foreground:        #1c1a15;
+  --foreground-muted:  #6b6656;
+  --foreground-subtle: #9b9682;
 
-  --border:        #e4e4e7;
-  --border-strong: #d4d4d8;
-  --ring:          #a1a1aa;
+  --border:        #d8d3c4;
+  --border-strong: #c3bda8;
+  --ring:          #8a8570;
 
-  --input:        var(--surface-2);
+  --input: var(--surface);
   --input-border: var(--border);
 
-  --profit:     #16a34a;
-  --profit-soft:#16a34a1a;
-  --loss:       #e11d48;
-  --loss-soft:  #e11d481a;
-  --neutral:    #18181b;
+  /* Data-only semantic colors — used on real values, never as decoration */
+  --profit:      #3f6b46;
+  --profit-soft: #3f6b4614;
+  --loss:        #9c4a3a;
+  --loss-soft:   #9c4a3a14;
+  --neutral:     #4a4638;
 
-  --success:  #16a34a;
-  --warning:  #d97706;
-  --danger:   #dc2626;
-  --info:     #2563eb;
+  --success: #3f6b46;
+  --warning: #b5842f;
+  --danger:  #9c4a3a;
+  --info:    #4a6f8a;
 
-  --brand:            #4f46e5;
-  --brand-hover:      #4338ca;
-  --brand-soft:       #4f46e518;
-  --brand-foreground: #ffffff;
+  /* Single restrained accent — ink, not indigo */
+  --brand:            #1c1a15;
+  --brand-hover:      #33302a;
+  --brand-soft:       #1c1a1510;
+  --brand-foreground: #efece4;
+
+  /* Radii */
+  --radius:    0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
 }
 
 @theme inline {
@@ -116,7 +72,9 @@
   --color-card-foreground:  var(--foreground);
 
   --color-profit:           var(--profit);
+  --color-profit-soft:      var(--profit-soft);
   --color-loss:             var(--loss);
+  --color-loss-soft:        var(--loss-soft);
   --color-neutral:          var(--neutral);
 
   --color-success:          var(--success);
@@ -128,10 +86,6 @@
   --color-brand-hover:      var(--brand-hover);
   --color-brand-soft:       var(--brand-soft);
   --color-brand-foreground: var(--brand-foreground);
-
-  /* Fonts — next/font injects --font-sans / --font-mono on <html>. */
-  --font-sans: var(--font-sans), system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
 
   --radius-sm: var(--radius-sm);
   --radius:    var(--radius);
@@ -145,10 +99,7 @@
   }
 
   body {
-    background:
-      radial-gradient(900px 520px at 82% -10%, color-mix(in oklab, var(--brand) 10%, transparent), transparent 64%),
-      radial-gradient(720px 440px at -8% 28%, color-mix(in oklab, var(--info) 5%, transparent), transparent 68%),
-      var(--background);
+    background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -175,7 +126,7 @@
   .text-h3      { font-size: 1.125rem; line-height: 1.3; letter-spacing: -0.016em; font-weight: 600; }
   .text-label   { font-size: 0.6875rem; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; }
 
-  /* Scrollbars — thin, themed, no jarring default white. */
+  /* Scrollbars — thin, themed, no jarring default. */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
@@ -187,18 +138,25 @@
   /* Focus rings everywhere — accessibility without ugliness. */
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--brand);
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
   }
 
-  /* Selection — brand-colored. */
+  /* Selection */
   ::selection {
-    background: var(--brand-soft);
+    background: var(--surface-3);
     color: var(--foreground);
   }
 }
 
 @layer utilities {
-  /* Glass card — subtle gradient + translucency for hero panels. */
+  /* Display serif — Fraunces with softness pinned to 0 for a crisp editorial feel.
+     Use on page/section titles and hero showcase numbers only. */
+  .font-display {
+    font-family: var(--font-serif), Georgia, serif;
+    font-variation-settings: "SOFT" 0, "opsz" 40;
+  }
+
+  /* Glass card — warm translucency for hero panels. */
   .glass {
     background: linear-gradient(
       135deg,
@@ -218,39 +176,8 @@
     backdrop-filter: blur(8px);
   }
 
-  /* Subtle grid texture for hero backgrounds. */
-  .bg-grid {
-    background-image:
-      linear-gradient(to right, var(--border) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
-    background-size: 48px 48px;
-    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-            mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-  }
-
-  /* Dot grid texture — tighter, more premium */
-  .bg-dots {
-    background-image: radial-gradient(circle, var(--border-strong) 1px, transparent 1px);
-    background-size: 24px 24px;
-    -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
-            mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
-  }
-
-  /* Brand glow for CTAs. */
-  .glow-brand {
-    box-shadow: 0 0 0 1px var(--brand-soft), 0 8px 32px -8px var(--brand);
-  }
-
-  /* Profit glow */
-  .glow-profit {
-    box-shadow: 0 0 0 1px var(--profit-soft), 0 4px 20px -4px var(--profit);
-  }
-
-  /* Card hover lift — refined for premium feel.
-   * - Lift reduced: -3px → -2px (subtle, not jarring)
-   * - Easing: ease-out (no overshoot spring) so it floats up smoothly
-   * - Duration: 320ms (slower = more organic)
-   * - :active press-down: cancels the lift, gives tactile press feedback */
+  /* Card hover lift — softened for parchment feel.
+   * No radial glow pseudo-element — just lift + border tighten. */
   .card-hover {
     position: relative;
     isolation: isolate;
@@ -261,24 +188,11 @@
       border-color 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
     will-change: transform;
   }
-  .card-hover::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    opacity: 0;
-    pointer-events: none;
-    background: radial-gradient(480px circle at var(--pointer-x, 50%) var(--pointer-y, 0%), color-mix(in oklab, var(--brand) 8%, transparent), transparent 45%);
-    transition: opacity 400ms ease;
-  }
   .card-hover:hover {
     transform: translateY(-2px);
-    border-color: color-mix(in oklab, var(--brand) 35%, var(--border));
-    box-shadow:
-      0 8px 24px -12px rgba(0, 0, 0, 0.6),
-      0 0 0 1px color-mix(in oklab, var(--brand) 10%, transparent);
+    border-color: var(--border-strong);
+    box-shadow: 0 8px 24px -12px rgba(28, 26, 21, 0.15);
   }
-  .card-hover:hover::before { opacity: 1; }
   /* Press state — card sinks back to baseline for tactile click feel */
   .card-hover:active {
     transform: translateY(0px);
@@ -286,33 +200,14 @@
     box-shadow: none;
   }
 
-  /* Command-center surfaces: restrained motion, dense information, zero visual noise. */
-  .command-grid {
-    background-image: linear-gradient(color-mix(in oklab, var(--border) 70%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--border) 70%, transparent) 1px, transparent 1px);
-    background-size: 28px 28px;
-  }
-  .signal-sweep { position: relative; overflow: hidden; }
-  .signal-sweep::after {
-    content: "";
-    position: absolute;
-    top: 0; bottom: 0; width: 35%;
-    background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--brand) 11%, transparent), transparent);
-    transform: translateX(-160%) skewX(-18deg);
-    animation: signalSweep 5.5s ease-in-out infinite;
-    pointer-events: none;
-  }
-  .telemetry-dot { animation: telemetryPulse 1.8s ease-in-out infinite; }
-
   /* ── Animations ── */
 
-  /* Fade in + lift (default — most UI elements)
-   * 4px rise: noticeable but not dramatic */
+  /* Fade in + lift (default — most UI elements) */
   .animate-fade-in {
     animation: fadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   }
 
-  /* Slide up — modals, drawers, popovers.
-   * 12px: enough to feel grounded coming from below, not a stage entrance */
+  /* Slide up — modals, drawers, popovers. */
   .animate-slide-up {
     animation: slideUp 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   }
@@ -325,7 +220,7 @@
   .animate-stagger > *:nth-child(5) { animation-delay: 240ms; }
   .animate-stagger > *:nth-child(6) { animation-delay: 300ms; }
 
-  /* Scale-in for dropdowns / tooltips — smooth, no overshoot */
+  /* Scale-in for dropdowns / tooltips */
   .animate-scale-in {
     animation: scaleIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   }
@@ -340,11 +235,6 @@
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s ease infinite;
-  }
-
-  /* Glow pulse — for active indicators */
-  .animate-glow-pulse {
-    animation: glowPulse 2.4s ease-in-out infinite;
   }
 
   @keyframes fadeIn {
@@ -365,20 +255,6 @@
   @keyframes shimmer {
     0%   { background-position: -200% 0; }
     100% { background-position:  200% 0; }
-  }
-
-  @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 0 0 transparent; opacity: 0.65; }
-    50%       { box-shadow: 0 0 12px 2px color-mix(in oklab, var(--brand) 35%, transparent); opacity: 1; }
-  }
-
-  @keyframes signalSweep {
-    0%, 46% { transform: translateX(-160%) skewX(-18deg); }
-    62%, 100% { transform: translateX(460%) skewX(-18deg); }
-  }
-  @keyframes telemetryPulse {
-    0%, 100% { transform: scale(1); opacity: .65; }
-    50% { transform: scale(1.45); opacity: 1; }
   }
 
   @keyframes spin {

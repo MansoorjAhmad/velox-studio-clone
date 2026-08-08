@@ -158,7 +158,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           <div className="rounded-md bg-surface-2 border border-border px-2.5 py-1.5 flex items-center justify-between">
             <span className="text-[9px] font-mono text-foreground-subtle/50">v1.2.0</span>
             <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-profit animate-glow-pulse" />
+              <div className="w-1.5 h-1.5 rounded-full bg-profit" />
               <span className="text-[9px] font-mono text-profit/70">executive</span>
             </div>
           </div>

@@ -4,7 +4,7 @@
  * Velox Studio — Command Palette (⌘K / Ctrl+K).
  *
  * Powered by cmdk. Feeds from the sidebar NAV so it stays in sync.
- * Includes quick actions: log a trade, open calculator, ask Zenith, theme toggle.
+ * Includes quick actions: log a trade, open calculator, ask Zenith.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -35,8 +35,6 @@ import {
   Compass,
   Sparkles,
   Settings,
-  Moon,
-  Sun,
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -101,20 +99,6 @@ export function CommandPalette() {
     [router],
   );
 
-  const toggleTheme = useCallback(() => {
-    const html = document.documentElement;
-    const isDark = html.classList.contains("dark");
-    if (isDark) {
-      html.classList.remove("dark");
-      html.classList.add("light");
-      localStorage.setItem("velox_theme", "light");
-    } else {
-      html.classList.remove("light");
-      html.classList.add("dark");
-      localStorage.setItem("velox_theme", "dark");
-    }
-    setOpen(false);
-  }, []);
 
   if (!open) return null;
 
@@ -216,14 +200,7 @@ export function CommandPalette() {
                 <Sparkles className="w-4 h-4 shrink-0" />
                 <span>Ask Velox Zenith AI</span>
               </CommandItem>
-              <CommandItem
-                onSelect={toggleTheme}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm cursor-pointer data-[selected=true]:bg-brand/10 data-[selected=true]:text-brand"
-              >
-                <Moon className="w-4 h-4 shrink-0 dark:hidden" />
-                <Sun className="w-4 h-4 shrink-0 hidden dark:block" />
-                <span>Toggle theme</span>
-              </CommandItem>
+
             </CommandGroup>
           </CommandList>
 

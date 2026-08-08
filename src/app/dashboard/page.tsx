@@ -352,12 +352,12 @@ export default function DashboardPage() {
       <LivePriceWidget />
 
       {/* Decision layer */}
-      <Card className="command-grid signal-sweep border-brand/20 glass-subtle card-hover">
+      <Card className="glass-subtle card-hover">
         <CardContent className="p-4 md:p-5 relative">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
             <div className="md:col-span-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-profit telemetry-dot" />
+                <span className="w-2 h-2 rounded-full bg-profit" />
                 <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-foreground-subtle">Execution intelligence</span>
               </div>
               <p className="text-lg font-bold tracking-tight">Your next decision has a context.</p>
@@ -394,7 +394,7 @@ export default function DashboardPage() {
               <DollarSign className="w-3 h-3 text-foreground-subtle" />
               <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Today&apos;s P&L</span>
             </div>
-            <p className={cn("text-xl font-extrabold font-mono", todayPnl >= 0 ? "text-profit" : "text-loss")}>
+            <p className={cn("text-2xl font-medium font-display", todayPnl >= 0 ? "text-profit" : "text-loss")}>
               {todayPnl >= 0 ? "+" : ""}<AnimatedCounter value={todayPnl} format="currency" />
             </p>
             <p className="text-[9px] text-foreground-muted mt-1">{todayTrades.length} trades today</p>
@@ -407,7 +407,7 @@ export default function DashboardPage() {
               <Target className="w-3 h-3 text-foreground-subtle" />
               <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Monthly P&L</span>
             </div>
-            <p className={cn("text-xl font-extrabold font-mono", monthPnl >= 0 ? "text-profit" : "text-loss")}>
+            <p className={cn("text-2xl font-medium font-display", monthPnl >= 0 ? "text-profit" : "text-loss")}>
               {monthPnl >= 0 ? "+" : ""}<AnimatedCounter value={monthPnl} format="currency" />
             </p>
             <div className="h-1 rounded-full bg-surface-3 overflow-hidden mt-1.5">
@@ -423,7 +423,7 @@ export default function DashboardPage() {
               <BarChart3 className="w-3 h-3 text-foreground-subtle" />
               <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Win Rate</span>
             </div>
-            <p className="text-xl font-extrabold font-mono text-brand">
+            <p className="text-2xl font-medium font-display text-foreground">
               <AnimatedCounter value={metrics.winRate * 100} format="decimal" decimals={1} />%
             </p>
             <p className="text-[9px] text-foreground-muted mt-1">{metrics.wins}W / {metrics.losses}L</p>
@@ -436,7 +436,7 @@ export default function DashboardPage() {
               <Shield className="w-3 h-3 text-foreground-subtle" />
               <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Profit Factor</span>
             </div>
-            <p className={cn("text-xl font-extrabold font-mono", metrics.profitFactor >= 1.5 ? "text-emerald-400" : "text-amber-400")}>
+            <p className="text-2xl font-medium font-display text-foreground">
               {metrics.profitFactor === Infinity ? "∞" : <AnimatedCounter value={metrics.profitFactor} format="decimal" decimals={2} />}
             </p>
             <p className="text-[9px] text-foreground-muted mt-1">{metrics.profitFactor >= 1.5 ? "Healthy edge" : "Build edge"}</p>
@@ -449,7 +449,7 @@ export default function DashboardPage() {
               <Activity className="w-3 h-3 text-foreground-subtle" />
               <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Max Drawdown</span>
             </div>
-            <p className="text-xl font-extrabold font-mono text-loss">
+            <p className="text-2xl font-medium font-display text-loss">
               -<AnimatedCounter value={drawdown.maxDrawdown} format="currency" />
             </p>
             <p className="text-[9px] text-foreground-muted mt-1">{(drawdown.maxDrawdownPct * 100).toFixed(1)}% from peak</p>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
               <Flame className="w-3 h-3 text-foreground-subtle" />
               <span className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Streak</span>
             </div>
-            <p className={cn("text-xl font-extrabold font-mono", streak.type === "win" ? "text-profit" : "text-foreground")}>
+            <p className="text-2xl font-medium font-display text-foreground">
               <AnimatedCounter value={streak.count} format="number" />
             </p>
             <p className="text-[9px] text-foreground-muted mt-1">{streak.type === "win" ? "Win streak 🔥" : streak.type === "loss" ? "Loss streak" : "No streak"}</p>
@@ -474,7 +474,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card className="lg:col-span-5 card-hover">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-sm font-display flex items-center gap-2">
               <Activity className="w-4 h-4 text-brand" />
               7-Day Velocity
             </CardTitle>

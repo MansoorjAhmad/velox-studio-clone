@@ -63,8 +63,7 @@ export default function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center px-8 py-12 relative">
         {/* Background effects */}
         <div className="fixed inset-0 bg-background pointer-events-none" />
-        <div className="fixed inset-0 bg-dots opacity-20 pointer-events-none" />
-        <div className="fixed top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-brand/8 blur-[120px] pointer-events-none rounded-full" />
+
 
         <div className="relative z-10 w-full max-w-[360px] animate-slide-up">
           {/* Logo */}
@@ -130,7 +129,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-brand text-brand-foreground hover:bg-brand/90 glow-brand font-semibold text-sm"
+              className="w-full h-11 bg-brand text-brand-foreground hover:bg-brand/90 font-semibold text-sm"
               disabled={loading}
             >
               {loading ? (

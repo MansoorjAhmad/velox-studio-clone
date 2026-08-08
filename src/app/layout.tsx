@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
@@ -12,6 +12,13 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  axes: ["opsz", "SOFT"],
   display: "swap",
 });
 
@@ -54,7 +61,7 @@ export const metadata: Metadata = {
     description: APP_DESCRIPTION,
     images: [
       {
-        url: "/og-image.png",   // 1200×630 — place this in /public
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Velox Studio — Trading Journal & Risk Calculator",
@@ -101,8 +108,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07070a",
-  colorScheme: "dark",
+  themeColor: "#efece4",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
 };
@@ -115,22 +122,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} dark`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        {/* Anti-flash: apply saved theme BEFORE React hydrates */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('velox_theme');var r=document.documentElement;if(t==='light'){r.classList.add('light')}else{r.classList.add('dark')}})();`,
-          }}
-        />
-      </head>
-      <body className="min-h-screen bg-background text-foreground antialiased">
+      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
         {children}
         <Toaster
           position="bottom-right"
-          theme="dark"
+          theme="light"
           richColors={false}
           closeButton
           toastOptions={{
@@ -144,7 +143,7 @@ export default function RootLayout({
             classNames: {
               success: "!border-profit/40",
               error: "!border-loss/40",
-              info: "!border-brand/40",
+              info: "!border-ring/40",
             },
           }}
         />
