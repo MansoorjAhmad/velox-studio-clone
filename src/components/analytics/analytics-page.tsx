@@ -68,6 +68,7 @@ export function AnalyticsPage() {
   const [activeAccId, setActiveAccId] = useState<string>("all");
   const [initialLoad, setInitialLoad] = useState(true);
   const [timeframe, setTimeframe] = useState<"7D" | "30D" | "90D" | "ALL">("30D");
+  const [activeTab, setActiveTab] = useState<"overview" | "calendar" | "detailed">("overview");
 
   const load = useCallback(async () => {
     const [tradesRes, accsRes] = await Promise.all([getTrades(), getTradingAccounts()]);
@@ -226,8 +227,6 @@ export function AnalyticsPage() {
       </div>
     );
   }
-
-  const [activeTab, setActiveTab] = useState<"overview" | "calendar" | "detailed">("overview");
 
   return (
     <PageTransition className="space-y-6">
