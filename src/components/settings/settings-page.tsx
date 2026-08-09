@@ -326,21 +326,11 @@ export function SettingsPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>Number Font Preference</Label>
-              <select
-                value={tradingConfig.numberFontPreference ?? "sans"}
-                onChange={(e) =>
-                  setTradingConfig((c) => ({
-                    ...c,
-                    numberFontPreference: e.target.value as "sans" | "mono" | "serif",
-                  }))
-                }
-                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
-              >
-                <option value="sans">Modern Sans (Inter) — Crisp & Clean</option>
-                <option value="mono">Tabular Mono (JetBrains) — Column Aligned</option>
-                <option value="serif">Editorial Serif (Fraunces) — Luxury Display</option>
-              </select>
+              <Label>Number Typography Standard</Label>
+              <div className="w-full rounded-md border border-border/80 bg-surface-2/60 px-3 py-2 text-xs font-semibold text-foreground flex items-center justify-between">
+                <span className="font-display font-medium text-sm text-brand">Fraunces Luxury Serif</span>
+                <Badge variant="brand" className="text-[9px] uppercase tracking-wider">Studio Standard</Badge>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Monthly Profit Target ($)</Label>

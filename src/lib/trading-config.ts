@@ -15,7 +15,7 @@ export const DEFAULT_TRADING_CONFIG: TradingConfig = {
   dailyRiskLimitPct: 3.0,
   phaseRiskPct: 1.0,
   topgPhase: "ICT Silver Bullet",
-  numberFontPreference: "sans",
+  numberFontPreference: "serif",
 };
 
 const STORAGE_KEY = "velox_trading_config";

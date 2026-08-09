@@ -109,12 +109,12 @@
     letter-spacing: -0.011em;
   }
 
-  /* Tabular numbers for all numeric data — prices, P&L, ratios
-     line up in perfect columns. This is the #1 pro-trader UI tell. */
+  /* Ultra-premium luxury serif numbers across all metrics, tables, P&L, and financial indicators. */
   .tabular {
-    font-family: var(--font-mono), ui-monospace, monospace;
+    font-family: var(--font-serif), Georgia, serif;
+    font-variation-settings: "SOFT" 0, "opsz" 36;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
   }
 
   /* ── Modular type scale ──
