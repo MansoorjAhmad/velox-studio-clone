@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +23,7 @@ import {
   LogOut,
   Sparkles,
   Shield,
+  Calendar,
   X,
 } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
@@ -32,27 +34,50 @@ type NavItem = {
   icon: LucideIcon;
 };
 
-const NAV: NavItem[] = [
-  { name: "Dashboard",                href: "/dashboard",                  icon: LayoutDashboard },
-  { name: "Trade Log",                href: "/dashboard/journal",          icon: BookOpen },
-  { name: "Trader Index",             href: "/dashboard/trader-index",     icon: Shield },
-  { name: "Performance Analytics",    href: "/dashboard/analytics",        icon: BarChart3 },
-  { name: "Backtest Replay",          href: "/dashboard/backtest",         icon: Activity },
-  { name: "Master Plan",              href: "/dashboard/plan",             icon: Compass },
-  { name: "Risk Calculator",          href: "/dashboard/calculator",       icon: Calculator },
-  { name: "Finances",                 href: "/dashboard/finances",         icon: DollarSign },
-  { name: "Finance Analytics",        href: "/dashboard/finances-analytics", icon: TrendingUp },
-  { name: "Debt Analytics",           href: "/dashboard/debts",            icon: CreditCard },
-  { name: "Goals",                    href: "/dashboard/goals",            icon: Target },
-  { name: "Goals Analytics",          href: "/dashboard/goals-analytics",  icon: PieChart },
-  { name: "Daily Routine",            href: "/dashboard/routine",          icon: CalendarCheck },
-  { name: "Daily Routine Analytics",  href: "/dashboard/routine-analytics",  icon: Activity },
-  { name: "Tasks",                    href: "/dashboard/tasks",            icon: CheckSquare },
-];
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
 
-const BOTTOM_NAV: NavItem[] = [
-  { name: "Velox Zenith", href: "/dashboard/zenith",   icon: Sparkles },
-  { name: "Settings",     href: "/dashboard/settings", icon: Settings },
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: "OVERVIEW",
+    items: [
+      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Performance Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+      { name: "Economic Calendar", href: "/dashboard/economic-calendar", icon: Calendar },
+      { name: "Trader Index", href: "/dashboard/trader-index", icon: Shield },
+    ],
+  },
+  {
+    title: "JOURNAL & PRACTICE",
+    items: [
+      { name: "Trade Log", href: "/dashboard/journal", icon: BookOpen },
+      { name: "Backtest Replay", href: "/dashboard/backtest", icon: Activity },
+      { name: "Master Plan", href: "/dashboard/plan", icon: Compass },
+    ],
+  },
+  {
+    title: "ROUTINE & GOALS",
+    items: [
+      { name: "Daily Routine", href: "/dashboard/routine", icon: CalendarCheck },
+      { name: "Routine Analytics", href: "/dashboard/routine-analytics", icon: Activity },
+      { name: "Goals", href: "/dashboard/goals", icon: Target },
+      { name: "Goals Analytics", href: "/dashboard/goals-analytics", icon: PieChart },
+      { name: "Tasks", href: "/dashboard/tasks", icon: CheckSquare },
+    ],
+  },
+  {
+    title: "FINANCES & UTILITIES",
+    items: [
+      { name: "Finances", href: "/dashboard/finances", icon: DollarSign },
+      { name: "Finance Analytics", href: "/dashboard/finances-analytics", icon: TrendingUp },
+      { name: "Debt Analytics", href: "/dashboard/debts", icon: CreditCard },
+      { name: "Risk Calculator", href: "/dashboard/calculator", icon: Calculator },
+      { name: "Zenith AI", href: "/dashboard/zenith", icon: Sparkles },
+      { name: "Settings", href: "/dashboard/settings", icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -83,23 +108,33 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-screen w-60 flex flex-col border-r border-border bg-surface overflow-hidden transition-transform duration-300 ease-out",
+          "fixed left-0 top-0 z-50 h-screen w-64 flex flex-col border-r border-border bg-surface overflow-hidden transition-transform duration-300 ease-out",
           "md:translate-x-0",
           mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
         )}
       >
-        {/* Brand header */}
-        <div className="relative h-14 flex items-center justify-between px-4 border-b border-border overflow-hidden shrink-0">
-          <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-brand/20 blur-2xl pointer-events-none" />
-          <div className="relative flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand/15 border border-brand/25 flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4 text-brand" />
+        {/* Brand header with Official Logo */}
+        <div className="relative h-16 flex items-center justify-between px-4 border-b border-border/70 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-lg overflow-hidden border border-border/80 bg-surface-2 flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105">
+              <Image
+                src="/logo.jpg"
+                alt="Velox Studio"
+                width={36}
+                height={36}
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
             <div>
-              <span className="text-sm font-bold tracking-tight leading-none block">Velox Studio</span>
-              <span className="text-[10px] text-foreground-subtle leading-none block mt-0.5">Performance OS</span>
+              <span className="font-display text-base font-medium tracking-tight leading-none block text-foreground">
+                VELOX
+              </span>
+              <span className="text-[10px] text-foreground-subtle tracking-[0.18em] uppercase font-bold leading-none block mt-0.5">
+                STUDIO
+              </span>
             </div>
-          </div>
+          </Link>
 
           <button
             onClick={onMobileClose}
@@ -109,47 +144,37 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          <p className="px-2.5 mb-2 text-[9px] font-bold uppercase tracking-[0.12em] text-foreground-subtle/60">
-            Main OS
-          </p>
-          {NAV.map((item) => (
-            <NavLinkRow
-              key={item.href}
-              item={item}
-              active={
-                item.href === "/dashboard"
-                  ? pathname === "/dashboard"
-                  : pathname.startsWith(item.href)
-              }
-              onClick={onMobileClose}
-            />
+        {/* Nav groups */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="space-y-1">
+              <p className="px-2.5 text-[9px] font-bold uppercase tracking-[0.15em] text-foreground-subtle/70 mb-1">
+                {group.title}
+              </p>
+              {group.items.map((item) => (
+                <NavLinkRow
+                  key={item.href}
+                  item={item}
+                  active={
+                    item.href === "/dashboard"
+                      ? pathname === "/dashboard"
+                      : pathname.startsWith(item.href)
+                  }
+                  onClick={onMobileClose}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 
-        {/* Bottom section */}
-        <div className="border-t border-border py-3 px-2 space-y-0.5 shrink-0">
-          <p className="px-2.5 mb-2 text-[9px] font-bold uppercase tracking-[0.12em] text-foreground-subtle/60">
-            System
-          </p>
-          {BOTTOM_NAV.map((item) => (
-            <NavLinkRow
-              key={item.href}
-              item={item}
-              active={pathname.startsWith(item.href)}
-              onClick={onMobileClose}
-            />
-          ))}
+        {/* Footer section */}
+        <div className="border-t border-border/70 p-2 shrink-0">
           <button
             onClick={handleLogout}
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-all duration-200",
-              "text-foreground-subtle hover:text-loss hover:bg-loss/8 active:scale-[0.98]",
-            )}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs text-foreground-subtle hover:text-loss hover:bg-loss/10 transition-colors font-medium"
           >
-            <LogOut className="w-4 h-4 shrink-0" />
-            <span>Log out</span>
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
           </button>
         </div>
 

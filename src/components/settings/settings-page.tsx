@@ -306,26 +306,88 @@ export function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>TOPG Phase</Label>
-              <select value={tradingConfig.topgPhase} onChange={(e) => setTradingConfig((c) => ({ ...c, topgPhase: e.target.value }))} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand">
-                {["TJL 1", "TJL 2 (A+)", "LEVEL 4", "QML", "DB / DT", "SBR / RBS"].map((phase) => <option key={phase}>{phase}</option>)}
+              <Label>Primary Strategy & Setup Model</Label>
+              <select
+                value={tradingConfig.topgPhase}
+                onChange={(e) => setTradingConfig((c) => ({ ...c, topgPhase: e.target.value }))}
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                {[
+                  "ICT Silver Bullet",
+                  "Fair Value Gap (FVG)",
+                  "Order Block (OB)",
+                  "Break of Structure (BOS)",
+                  "Liquidity Sweep (QML)",
+                  "Double Bottom / Top (DB/DT)",
+                  "Support / Resistance Flip (SBR/RBS)",
+                ].map((phase) => (
+                  <option key={phase}>{phase}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Number Font Preference</Label>
+              <select
+                value={tradingConfig.numberFontPreference ?? "sans"}
+                onChange={(e) =>
+                  setTradingConfig((c) => ({
+                    ...c,
+                    numberFontPreference: e.target.value as "sans" | "mono" | "serif",
+                  }))
+                }
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                <option value="sans">Modern Sans (Inter) — Crisp & Clean</option>
+                <option value="mono">Tabular Mono (JetBrains) — Column Aligned</option>
+                <option value="serif">Editorial Serif (Fraunces) — Luxury Display</option>
               </select>
             </div>
             <div className="space-y-1.5">
               <Label>Monthly Profit Target ($)</Label>
-              <Input type="number" min="0" step="50" value={tradingConfig.monthlyProfitTarget} onChange={(e) => setTradingConfig((c) => ({ ...c, monthlyProfitTarget: Number(e.target.value) || 0 }))} className="font-mono" />
+              <Input
+                type="number"
+                min="0"
+                step="50"
+                value={tradingConfig.monthlyProfitTarget}
+                onChange={(e) =>
+                  setTradingConfig((c) => ({ ...c, monthlyProfitTarget: Number(e.target.value) || 0 }))
+                }
+                className="font-mono"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Default Risk per Trade (%)</Label>
-              <Input type="number" min="0" max="100" step="0.05" value={tradingConfig.phaseRiskPct} onChange={(e) => setTradingConfig((c) => ({ ...c, phaseRiskPct: Number(e.target.value) || 0 }))} className="font-mono" />
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.05"
+                value={tradingConfig.phaseRiskPct}
+                onChange={(e) =>
+                  setTradingConfig((c) => ({ ...c, phaseRiskPct: Number(e.target.value) || 0 }))
+                }
+                className="font-mono"
+              />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label>Daily Risk Limit (%)</Label>
-              <Input type="number" min="0" max="100" step="0.1" value={tradingConfig.dailyRiskLimitPct} onChange={(e) => setTradingConfig((c) => ({ ...c, dailyRiskLimitPct: Number(e.target.value) || 0 }))} className="font-mono" />
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={tradingConfig.dailyRiskLimitPct}
+                onChange={(e) =>
+                  setTradingConfig((c) => ({ ...c, dailyRiskLimitPct: Number(e.target.value) || 0 }))
+                }
+                className="font-mono"
+              />
             </div>
           </div>
           <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface/60 p-3">
-            <p className="text-[11px] text-foreground-muted">Applies instantly to dashboard target/risk telemetry and calculator defaults.</p>
+            <p className="text-[11px] text-foreground-muted">
+              Applies instantly across dashboard risk telemetry, calculator defaults, and number typography.
+            </p>
             <Button size="sm" onClick={handleSaveTradingConfig} className="shrink-0">
               {configSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
               {configSaved ? "Synced" : "Save Config"}

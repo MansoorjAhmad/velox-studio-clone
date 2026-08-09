@@ -176,28 +176,16 @@
     backdrop-filter: blur(8px);
   }
 
-  /* Card hover lift — softened for parchment feel.
-   * No radial glow pseudo-element — just lift + border tighten. */
+  /* Smooth, non-jarring card hover — border tightening & soft shadow, zero physical jump */
   .card-hover {
     position: relative;
-    isolation: isolate;
-    overflow: hidden;
     transition:
-      box-shadow 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      transform 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      border-color 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    will-change: transform;
+      border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .card-hover:hover {
-    transform: translateY(-2px);
     border-color: var(--border-strong);
-    box-shadow: 0 8px 24px -12px rgba(28, 26, 21, 0.15);
-  }
-  /* Press state — card sinks back to baseline for tactile click feel */
-  .card-hover:active {
-    transform: translateY(0px);
-    transition-duration: 80ms;
-    box-shadow: none;
+    box-shadow: 0 4px 16px -2px rgba(28, 26, 21, 0.06);
   }
 
   /* ── Animations ── */

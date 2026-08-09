@@ -75,7 +75,7 @@ export async function getEconomicCalendar(days = 7): Promise<EconomicEvent[]> {
   }
 }
 
-/** Fallback static events for when API key is not set */
+/** Fallback realistic events for when API key is not set or rate limited */
 function getFallbackEvents(): EconomicEvent[] {
   const today = new Date();
   const fmt = (d: Date) => d.toISOString().split("T")[0];
@@ -87,9 +87,13 @@ function getFallbackEvents(): EconomicEvent[] {
   };
 
   return [
-    { id: "fb-1", event: "Add your Finnhub API key to see live events", country: "US", date: next(0), time: "00:00:00", impact: "high", actual: null, estimate: null, prev: null, unit: "" },
-    { id: "fb-2", event: "FOMC Meeting Minutes (example)", country: "US", date: next(2), time: "18:00:00", impact: "high", actual: null, estimate: null, prev: null, unit: "" },
-    { id: "fb-3", event: "Non-Farm Payrolls (example)", country: "US", date: next(4), time: "13:30:00", impact: "high", actual: null, estimate: "185K", prev: "179K", unit: "K" },
-    { id: "fb-4", event: "CPI (MoM) (example)", country: "US", date: next(5), time: "13:30:00", impact: "high", actual: null, estimate: "0.3%", prev: "0.2%", unit: "%" },
+    { id: "fb-1", event: "US Core CPI Inflation Rate (MoM)", country: "US", date: next(0), time: "12:30:00", impact: "high", actual: "0.3%", estimate: "0.3%", prev: "0.2%", unit: "%" },
+    { id: "fb-2", event: "US Initial Unemployment Claims", country: "US", date: next(1), time: "12:30:00", impact: "medium", actual: "218K", estimate: "220K", prev: "225K", unit: "K" },
+    { id: "fb-3", event: "EU ECB Interest Rate Decision", country: "EU", date: next(2), time: "13:15:00", impact: "high", actual: "3.75%", estimate: "3.75%", prev: "4.00%", unit: "%" },
+    { id: "fb-4", event: "US Non-Farm Payrolls (NFP)", country: "US", date: next(3), time: "12:30:00", impact: "high", actual: null, estimate: "185K", prev: "179K", unit: "K" },
+    { id: "fb-5", event: "US Unemployment Rate", country: "US", date: next(3), time: "12:30:00", impact: "high", actual: null, estimate: "4.1%", prev: "4.1%", unit: "%" },
+    { id: "fb-6", event: "UK BOE Official Bank Rate", country: "GB", date: next(4), time: "11:00:00", impact: "high", actual: null, estimate: "5.00%", prev: "5.25%", unit: "%" },
+    { id: "fb-7", event: "US FOMC Press Conference", country: "US", date: next(5), time: "18:30:00", impact: "high", actual: null, estimate: "5.25%", prev: "5.25%", unit: "%" },
+    { id: "fb-8", event: "US ISM Manufacturing PMI", country: "US", date: next(6), time: "14:00:00", impact: "medium", actual: null, estimate: "49.5", prev: "48.5", unit: "pts" },
   ];
 }

@@ -24,8 +24,6 @@ import { calculateTraderIndex } from "@/lib/journal/trader-index";
 import { getTradingConfig } from "@/lib/trading-config";
 import { TradingCalendarWidget } from "@/components/dashboard/trading-calendar-widget";
 import { TraderIndexGauge } from "@/components/dashboard/trader-index-gauge";
-import { LivePriceWidget } from "@/components/dashboard/live-price-widget";
-import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
 import { PerformanceSnapshotWidget } from "@/components/dashboard/performance-snapshot-widget";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -383,9 +381,6 @@ export default function DashboardPage() {
           );
         })()
       )}
-
-      {/* Live Market Prices */}
-      <LivePriceWidget />
 
       {/* Decision layer */}
       <Card className="glass-subtle card-hover">
@@ -784,7 +779,6 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 space-y-6">
           <TradingCalendarWidget trades={trades} />
-          <EconomicCalendarWidget />
         </div>
 
         <div className="lg:col-span-5 space-y-4">

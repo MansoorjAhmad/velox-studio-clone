@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 
@@ -158,8 +159,15 @@ export default function LoginPage() {
       {/* Right panel — brand visual (hidden on mobile) */}
       <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative bg-surface border-l border-border overflow-hidden">
         <div className="relative z-10 max-w-xs text-center space-y-6">
-          <div className="w-20 h-20 rounded-2xl bg-brand/15 border border-brand/25 flex items-center justify-center mx-auto">
-            <Sparkles className="w-10 h-10 text-brand" />
+          <div className="w-20 h-20 rounded-2xl overflow-hidden border border-border/80 bg-surface-2 flex items-center justify-center mx-auto shadow-md">
+            <Image
+              src="/logo.jpg"
+              alt="Velox Studio"
+              width={80}
+              height={80}
+              className="w-full h-full object-cover"
+              priority
+            />
           </div>
           <div>
             <h2 className="text-xl font-bold font-display tracking-tight">

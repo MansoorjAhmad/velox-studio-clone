@@ -17,17 +17,33 @@ import {
   Check,
 } from "lucide-react";
 
+import Image from "next/image";
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-brand/30">
       {/* Navigation */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="h-9 w-9 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 text-brand" />
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="h-10 w-10 rounded-lg overflow-hidden border border-border/80 bg-surface-2 flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105">
+              <Image
+                src="/logo.jpg"
+                alt="Velox Studio"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
-            <span className="font-bold tracking-tight text-lg">Velox Studio</span>
+            <div>
+              <span className="font-display text-lg font-medium tracking-tight leading-none block text-foreground">
+                VELOX
+              </span>
+              <span className="text-[10px] text-foreground-subtle tracking-[0.18em] uppercase font-bold leading-none block mt-0.5">
+                STUDIO
+              </span>
+            </div>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm text-foreground-muted font-medium">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>

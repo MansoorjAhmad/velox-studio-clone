@@ -1,17 +1,21 @@
 /** Client-side trading configuration — single source of truth for dashboard, calculator, analytics. */
 
+export type NumberFontPreference = "sans" | "mono" | "serif";
+
 export interface TradingConfig {
   monthlyProfitTarget: number;
   dailyRiskLimitPct: number;
   phaseRiskPct: number;
   topgPhase: string;
+  numberFontPreference: NumberFontPreference;
 }
 
 export const DEFAULT_TRADING_CONFIG: TradingConfig = {
   monthlyProfitTarget: 5000,
   dailyRiskLimitPct: 3.0,
   phaseRiskPct: 1.0,
-  topgPhase: "LEVEL 4",
+  topgPhase: "ICT Silver Bullet",
+  numberFontPreference: "sans",
 };
 
 const STORAGE_KEY = "velox_trading_config";

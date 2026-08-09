@@ -9,6 +9,7 @@ import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ChartTooltip } from "@/components/ui/chart-tooltip";
 import { getTrades } from "@/lib/journal/actions";
+import { TradingCalendarWidget } from "@/components/dashboard/trading-calendar-widget";
 import {
   buildEquityCurve,
   calculateMetrics,
@@ -226,6 +227,8 @@ export function AnalyticsPage() {
     );
   }
 
+  const [activeTab, setActiveTab] = useState<"overview" | "calendar" | "detailed">("overview");
+
   return (
     <PageTransition className="space-y-6">
       {/* ═══ HEADER ═══ */}
@@ -236,20 +239,41 @@ export function AnalyticsPage() {
               <BarChart3 className="w-5 h-5 text-brand" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Performance Analytics</h1>
-              <p className="text-xs text-foreground-muted">Quantitative edge analysis, equity curve, hourly heatmap &amp; session breakdown.</p>
+              <h1 className="font-display text-2xl font-medium tracking-tight">Performance Analytics</h1>
+              <p className="text-xs text-foreground-muted">Quantitative edge analysis, equity curve, TradeZella calendar &amp; session breakdown.</p>
             </div>
           </div>
-          <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
-            {(["7D", "30D", "90D", "ALL"] as const).map((tf) => (
-              <button
-                key={tf}
-                onClick={() => setTimeframe(tf)}
-                className={cn("px-3.5 py-1.5 text-xs font-bold rounded-md transition-all", timeframe === tf ? "bg-brand text-white shadow-sm" : "text-foreground-muted hover:text-foreground")}
-              >
-                {tf}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* View Tab Selector */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
+              {(["overview", "calendar", "detailed"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-semibold rounded-md transition-all capitalize",
+                    activeTab === tab
+                      ? "bg-brand text-brand-foreground shadow-sm"
+                      : "text-foreground-muted hover:text-foreground"
+                  )}
+                >
+                  {tab === "overview" ? "Overview" : tab === "calendar" ? "📅 TradeZella Calendar" : "Detailed Stats"}
+                </button>
+              ))}
+            </div>
+
+            {/* Timeframe Selector */}
+            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
+              {(["7D", "30D", "90D", "ALL"] as const).map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeframe(tf)}
+                  className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-all", timeframe === tf ? "bg-surface-3 text-foreground shadow-sm" : "text-foreground-muted hover:text-foreground")}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </FadeIn>
@@ -281,7 +305,12 @@ export function AnalyticsPage() {
         })()
       )}
 
-      {/* ═══ PRIMARY KPI ROW ═══ */}
+      {/* ═══ TAB: TRADEZELLA CALENDAR ═══ */}
+      {activeTab === "calendar" ? (
+        <TradingCalendarWidget trades={filteredTrades} />
+      ) : (
+        <>
+          {/* ═══ PRIMARY KPI ROW ═══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger">
         {[
           { label: "Net Realized P&L", value: stats.netPnl, fmt: true, sub: `From ${stats.closed} closed trades`, icon: DollarSign },
@@ -974,6 +1003,8 @@ export function AnalyticsPage() {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
     </PageTransition>
   );
 }
