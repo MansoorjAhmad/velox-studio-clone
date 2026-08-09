@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { getProfile, upsertProfile } from "@/lib/settings/actions";
+import { getProfile, upsertProfile, resetAllUserData } from "@/lib/settings/actions";
 import {
   getTradingAccounts,
   createTradingAccount,
@@ -600,16 +600,24 @@ export function SettingsPage() {
             <Button
               variant="danger"
               size="sm"
-              onClick={() => {
-                localStorage.removeItem("velox_local_accounts");
-                localStorage.removeItem("velox_active_account_id");
-                localStorage.removeItem("velox_local_trades");
-                localStorage.removeItem("velox_trading_config");
-                toast.success("All local data reset cleanly.");
-                setShowResetModal(false);
-                window.dispatchEvent(new Event("trading_accounts_changed"));
-                window.dispatchEvent(new Event("active_account_changed"));
-                setTimeout(() => window.location.reload(), 500);
+              onClick={async () => {
+                try {
+                  const res = await resetAllUserData();
+                  if (res?.error) {
+                    toast.error(`Reset error: ${res.error}`);
+                    return;
+                  }
+                  localStorage.clear();
+                  toast.success("All database records and local cache reset successfully.");
+                  setShowResetModal(false);
+                  window.dispatchEvent(new Event("trading_accounts_changed"));
+                  window.dispatchEvent(new Event("active_account_changed"));
+                  setTimeout(() => window.location.reload(), 600);
+                } catch (err) {
+                  localStorage.clear();
+                  toast.success("Local browser cache reset successfully.");
+                  setTimeout(() => window.location.reload(), 600);
+                }
               }}
             >
               Yes, Reset Everything

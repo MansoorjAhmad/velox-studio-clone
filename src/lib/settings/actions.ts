@@ -61,3 +61,37 @@ export async function upsertProfile(input: {
   revalidatePath("/dashboard/settings");
   return {};
 }
+
+export async function resetAllUserData(): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  // Delete user records from all Supabase tables
+  await supabase.from("routine_logs").delete().eq("user_id", user.id);
+  await supabase.from("routine_items").delete().eq("user_id", user.id);
+  await supabase.from("trades").delete().eq("user_id", user.id);
+  await supabase.from("goals").delete().eq("user_id", user.id);
+  await supabase.from("tasks").delete().eq("user_id", user.id);
+  await supabase.from("transactions").delete().eq("user_id", user.id);
+  await supabase.from("debt_payments").delete().eq("user_id", user.id);
+  await supabase.from("debts").delete().eq("user_id", user.id);
+  await supabase.from("trading_accounts").delete().eq("user_id", user.id);
+  await supabase.from("time_entries").delete().eq("user_id", user.id);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/routine");
+  revalidatePath("/dashboard/routine-analytics");
+  revalidatePath("/dashboard/journal");
+  revalidatePath("/dashboard/goals");
+  revalidatePath("/dashboard/goals-analytics");
+  revalidatePath("/dashboard/tasks");
+  revalidatePath("/dashboard/finances");
+  revalidatePath("/dashboard/finances-analytics");
+  revalidatePath("/dashboard/debts");
+  revalidatePath("/dashboard/settings");
+
+  return {};
+}
