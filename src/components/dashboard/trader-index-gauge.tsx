@@ -45,10 +45,10 @@ export function TraderIndexGauge({ breakdown }: TraderIndexGaugeProps) {
   const tier =
     overall >= 80 ? "elite" : overall >= 65 ? "good" : overall >= 45 ? "fair" : "poor";
   const tierConfig = {
-    elite: { color: "#34d399", stroke: "#34d399", label: "Elite Discipline", icon: ShieldCheck, textClass: "text-profit" },
-    good:  { color: "#6366f1", stroke: "#6366f1", label: "Solid Discipline", icon: ShieldCheck, textClass: "text-brand" },
-    fair:  { color: "#fbbf24", stroke: "#fbbf24", label: "Developing", icon: ShieldAlert, textClass: "text-warning" },
-    poor:  { color: "#fb7185", stroke: "#fb7185", label: "Needs Work", icon: ShieldX, textClass: "text-loss" },
+    elite: { color: "var(--profit)", stroke: "var(--profit)", label: "Elite Discipline", icon: ShieldCheck, textClass: "text-profit" },
+    good:  { color: "var(--brand)", stroke: "var(--brand)", label: "Solid Discipline", icon: ShieldCheck, textClass: "text-brand" },
+    fair:  { color: "var(--warning)", stroke: "var(--warning)", label: "Developing", icon: ShieldAlert, textClass: "text-warning" },
+    poor:  { color: "var(--loss)", stroke: "var(--loss)", label: "Needs Work", icon: ShieldX, textClass: "text-loss" },
   }[tier];
   const TierIcon = tierConfig.icon;
 

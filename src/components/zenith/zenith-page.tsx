@@ -448,19 +448,19 @@ export function ZenithPage() {
                     <AreaChart data={equityCurve}>
                       <defs>
                         <linearGradient id="zenithEquity" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                          <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.25} />
+                          <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <XAxis
                         dataKey="index"
-                        stroke="#71717a"
+                        stroke="var(--foreground-subtle)"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
                       />
                       <YAxis
-                        stroke="#71717a"
+                        stroke="var(--foreground-subtle)"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
@@ -468,12 +468,13 @@ export function ZenithPage() {
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "#111113",
-                          border: "1px solid #27272a",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
                           fontSize: "12px",
+                          color: "var(--foreground)",
                         }}
-                        labelStyle={{ color: "#71717a" }}
+                        labelStyle={{ color: "var(--foreground-subtle)" }}
                         formatter={(value) => [
                           formatCurrency(Number(value)),
                           "Equity",
@@ -482,7 +483,7 @@ export function ZenithPage() {
                       <Area
                         type="monotone"
                         dataKey="equity"
-                        stroke="#6366f1"
+                        stroke="var(--brand)"
                         strokeWidth={2}
                         fill="url(#zenithEquity)"
                       />

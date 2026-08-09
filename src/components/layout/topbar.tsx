@@ -140,7 +140,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
           >
             <span
               className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: activeAcc ? activeAcc.color : "#6366f1" }}
+              style={{ backgroundColor: activeAcc ? activeAcc.color : "var(--brand)" }}
             />
             <span className="truncate max-w-[110px] text-foreground">
               {selectedAccId === "all" ? "All Accounts" : activeAcc ? activeAcc.name : "Select Account"}

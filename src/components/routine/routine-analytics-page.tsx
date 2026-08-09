@@ -38,11 +38,11 @@ const CATEGORY_LABELS: Record<RoutineCategory, string> = {
 };
 
 const CATEGORY_COLORS: Record<RoutineCategory, string> = {
-  deen: "#34d399",
-  life: "#fb7185",
-  trading: "#6366f1",
-  work: "#38bdf8",
-  growth: "#fbbf24",
+  deen: "var(--profit)",
+  life: "var(--loss)",
+  trading: "var(--brand)",
+  work: "var(--info)",
+  growth: "var(--warning)",
 };
 
 export function RoutineAnalyticsPage() {
@@ -173,7 +173,7 @@ export function RoutineAnalyticsPage() {
       </div>
 
       {error && (
-        <Card className="border-loss/30 bg-loss/5">
+        <Card className="border-loss/30">
           <CardContent className="py-3 text-sm text-loss">{error}</CardContent>
         </Card>
       )}
@@ -188,10 +188,10 @@ export function RoutineAnalyticsPage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: "Execution Rate", value: `${stats.overallPct}%`, color: "text-profit", icon: CheckCircle2, border: "border-profit/30 bg-profit/5" },
-              { label: "Completed", value: `${stats.totalCompleted}`, color: "text-brand", icon: Target, border: "border-brand/30 bg-brand/5" },
-              { label: "Missed Slots", value: `${stats.totalMissed}`, color: "text-loss", icon: XCircle, border: "border-loss/30 bg-loss/5" },
-              { label: "Hot Streak", value: stats.streak > 0 ? `${stats.streak}d 🔥` : "—", color: "text-amber-400", icon: Flame, border: "border-amber-400/30 bg-amber-400/5" },
+              { label: "Execution Rate", value: `${stats.overallPct}%`, color: "text-profit", icon: CheckCircle2, border: "border-profit/30" },
+              { label: "Completed", value: `${stats.totalCompleted}`, color: "text-brand", icon: Target, border: "border-brand/30" },
+              { label: "Missed Slots", value: `${stats.totalMissed}`, color: "text-loss", icon: XCircle, border: "border-loss/30" },
+              { label: "Hot Streak", value: stats.streak > 0 ? `${stats.streak}d 🔥` : "—", color: "text-warning", icon: Flame, border: "border-warning/30" },
             ].map((kpi) => (
               <Card key={kpi.label} className={cn("card-hover", kpi.border)}>
                 <CardContent className="p-4 flex items-center justify-between">
@@ -263,13 +263,13 @@ export function RoutineAnalyticsPage() {
             <CardContent className="h-48 pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.heatDays}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="label" stroke="#475569" fontSize={8} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                  <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                  <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }} formatter={(v) => [`${Number(v)}%`, "Completion"]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={8} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                  <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "10px", fontSize: "11px", color: "var(--foreground)" }} formatter={(v) => [`${Number(v)}%`, "Completion"]} />
                   <Bar dataKey="pct" radius={[3, 3, 0, 0]}>
                     {stats.heatDays.map((d, i) => (
-                      <Cell key={i} fill={d.pct >= 80 ? "#34d399" : d.pct >= 50 ? "#6366f1" : "#fb7185"} />
+                      <Cell key={i} fill={d.pct >= 80 ? "var(--profit)" : d.pct >= 50 ? "var(--brand)" : "var(--loss)"} />
                     ))}
                   </Bar>
                 </BarChart>

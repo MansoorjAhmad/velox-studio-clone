@@ -839,7 +839,7 @@ export function TradeForm({
         </div>
       )}
       {success && (
-        <div className="rounded-md border border-profit/30 bg-profit/5 px-4 py-3 text-sm text-profit flex items-center gap-2">
+        <div className="rounded-md border border-profit/30 px-4 py-3 text-sm text-profit flex items-center gap-2">
           <Check className="w-4 h-4" />
           Trade {tradeId ? "updated" : "logged"} successfully.
         </div>

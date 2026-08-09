@@ -398,9 +398,9 @@ export function ReplayPage() {
                   ))}
                 </Bar>
                 {/* Close price line */}
-                <Line type="monotone" dataKey="close" stroke="#6366f1" strokeWidth={1.5} dot={false} />
+                <Line type="monotone" dataKey="close" stroke="var(--brand)" strokeWidth={1.5} dot={false} />
                 {/* Current price marker */}
-                <ReferenceLine y={currentPrice} stroke="#6366f1" strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={currentPrice} stroke="var(--brand)" strokeDasharray="3 3" strokeWidth={1} />
               </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
@@ -566,10 +566,10 @@ export function ReplayPage() {
                         <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
                         <YAxis stroke="#475569" fontSize={9} tickLine={false} axisLine={false} orientation="right" />
                         <Tooltip
-                          contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "10px" }}
+                          contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "10px", color: "var(--foreground)" }}
                           formatter={(val) => [formatCurrency(Number(val)), "Equity"]}
                         />
-                        <Line type="monotone" dataKey="equity" stroke="#6366f1" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="equity" stroke="var(--brand)" strokeWidth={2} dot={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>

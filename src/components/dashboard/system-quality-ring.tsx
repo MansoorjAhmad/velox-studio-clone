@@ -13,9 +13,9 @@ export function SystemQualityRing({ quality }: SystemQualityRingProps) {
   const { overall, discipline, execution, riskCompliance } = quality;
 
   const segments = [
-    { label: "Discipline Rating", value: discipline, color: "bg-brand", hex: "#6366f1" },
-    { label: "Execution Quality", value: execution, color: "bg-profit", hex: "#34d399" },
-    { label: "Risk Compliance", value: riskCompliance, color: "bg-amber-400", hex: "#fbbf24" },
+    { label: "Discipline Rating", value: discipline, color: "bg-brand", hex: "var(--brand)" },
+    { label: "Execution Quality", value: execution, color: "bg-profit", hex: "var(--profit)" },
+    { label: "Risk Compliance", value: riskCompliance, color: "bg-warning", hex: "var(--warning)" },
   ];
 
   // Build conic gradient from segment proportions
@@ -26,7 +26,7 @@ export function SystemQualityRing({ quality }: SystemQualityRingProps) {
     stops.push(`${seg.hex} ${cursor}% ${end}%`);
     cursor = end;
   }
-  stops.push(`#1e293b ${cursor}% 100%`);
+  stops.push(`var(--surface-3) ${cursor}% 100%`);
 
   const scoreColor =
     overall >= 80 ? "text-profit" : overall >= 60 ? "text-brand" : overall >= 40 ? "text-amber-400" : "text-loss";

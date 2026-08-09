@@ -174,7 +174,7 @@ export function FinancesAnalyticsPage() {
       </div>
 
       {error && (
-        <Card className="border-loss/30 bg-loss/5">
+        <Card className="border-loss/30">
           <CardContent className="py-3 text-sm text-loss">{error}</CardContent>
         </Card>
       )}
@@ -254,15 +254,15 @@ export function FinancesAnalyticsPage() {
                     <AreaChart data={stats.dailyNet}>
                       <defs>
                         <linearGradient id="finCumGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                          <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="var(--brand)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="date" stroke="#475569" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(v) => v.slice(5)} />
-                      <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                      <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }} formatter={(v) => [formatCurrency(Number(v)), "Cumulative"]} />
-                      <Area type="monotone" dataKey="cumulative" stroke="#6366f1" strokeWidth={2} fill="url(#finCumGrad)" dot={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="date" stroke="var(--foreground-subtle)" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(v) => v.slice(5)} />
+                      <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                      <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "10px", fontSize: "11px", color: "var(--foreground)" }} formatter={(v) => [formatCurrency(Number(v)), "Cumulative"]} />
+                      <Area type="monotone" dataKey="cumulative" stroke="var(--brand)" strokeWidth={2} fill="url(#finCumGrad)" dot={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}

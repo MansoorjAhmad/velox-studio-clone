@@ -261,7 +261,7 @@ export function AnalyticsPage() {
           return (
             <div className="flex items-center justify-between p-3 rounded-xl border border-brand/25 bg-brand/10 backdrop-blur-md animate-fade-in text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "#6366f1" }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "var(--brand)" }} />
                 <span className="font-semibold text-foreground">
                   Analytics filtered for: <span className="text-brand font-bold">{activeAcc ? activeAcc.name : "Selected Account"}</span>
                   {activeAcc && ` (${activeAcc.account_type.toUpperCase()} · Initial: ${formatCurrency(activeAcc.initial_balance)})`}
@@ -382,9 +382,9 @@ export function AnalyticsPage() {
               <AreaChart data={equityCurve}>
                 <defs>
                   <linearGradient id="anaEqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
-                    <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.35} />
+                    <stop offset="60%" stopColor="var(--brand)" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
@@ -401,18 +401,18 @@ export function AnalyticsPage() {
                 <Area
                   type="monotone"
                   dataKey="equity"
-                  stroke="#6366f1"
+                  stroke="var(--brand)"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#anaEqGrad)"
                   dot={false}
-                  activeDot={{ r: 5, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: "var(--brand)", stroke: "var(--surface)", strokeWidth: 2 }}
                 />
                 {equityCurve.length > 1 && (
                   <Brush
                     dataKey="date"
                     height={24}
-                    stroke="#6366f1"
+                    stroke="var(--brand)"
                     fill="var(--surface-2)"
                     travellerWidth={10}
                     tickFormatter={() => ""}
@@ -850,13 +850,13 @@ export function AnalyticsPage() {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rBuckets} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                <XAxis type="number" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="label" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} width={80} />
-                <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                <XAxis type="number" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} width={80} />
+                <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "10px", fontSize: "11px", color: "var(--foreground)" }} />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                   {rBuckets.map((b, i) => (
-                    <Cell key={i} fill={b.label.includes("-") ? "#fb7185" : "#6366f1"} />
+                    <Cell key={i} fill={b.label.includes("-") ? "var(--loss)" : "var(--brand)"} />
                   ))}
                 </Bar>
               </BarChart>

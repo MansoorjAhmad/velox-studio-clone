@@ -61,9 +61,9 @@ export async function GET() {
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e2e8f0; margin: 0; padding: 20px; }
-    .container { max-width: 520px; margin: 0 auto; background: #111118; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 28px 32px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #efece4; color: #1c1a15; margin: 0; padding: 20px; }
+    .container { max-width: 520px; margin: 0 auto; background: #f6f3e9; border: 1px solid #d8d3c4; border-radius: 16px; overflow: hidden; }
+    .header { background: #1c1a15; padding: 28px 32px; }
     .header h1 { margin: 0; font-size: 20px; font-weight: 700; color: white; }
     .header p { margin: 4px 0 0; font-size: 13px; color: rgba(255,255,255,0.7); }
     .body { padding: 28px 32px; }
@@ -107,7 +107,7 @@ export async function GET() {
           </div>
           <div class="stat">
             <p class="stat-label">Win Rate</p>
-            <p class="stat-value" style="color: #6366f1">${winRate}%</p>
+            <p class="stat-value" style="color: #3f6b46">${winRate}%</p>
           </div>
           <div class="stat">
             <p class="stat-label">Wins / Losses</p>
@@ -121,7 +121,7 @@ export async function GET() {
       `}
     </div>
     <div class="footer">
-      <p>Velox Studio · Your personal trading OS · <a href="https://veloxstudioapp.vercel.app/dashboard" style="color: #6366f1">Open Dashboard</a></p>
+      <p>Velox Studio · Your personal trading OS · <a href="https://veloxstudioapp.vercel.app/dashboard" style="color: #1c1a15; font-weight: bold;">Open Dashboard</a></p>
     </div>
   </div>
 </body>

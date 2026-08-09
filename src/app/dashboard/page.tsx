@@ -328,7 +328,7 @@ export default function DashboardPage() {
           return (
             <div className="flex items-center justify-between p-3 rounded-xl border border-brand/25 bg-brand/10 backdrop-blur-md animate-fade-in text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "#6366f1" }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "var(--brand)" }} />
                 <span className="font-semibold text-foreground">
                   Showing stats for: <span className="text-brand font-bold">{activeAcc ? activeAcc.name : "Selected Account"}</span>
                   {activeAcc && ` (${activeAcc.account_type.toUpperCase()} · Initial: ${formatCurrency(activeAcc.initial_balance)})`}
@@ -605,9 +605,9 @@ export default function DashboardPage() {
               <AreaChart data={equityCurve}>
                 <defs>
                   <linearGradient id="dashEqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5} />
-                    <stop offset="60%" stopColor="#6366f1" stopOpacity={0.12} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.35} />
+                    <stop offset="60%" stopColor="var(--brand)" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
@@ -616,9 +616,9 @@ export default function DashboardPage() {
                 {monthlyTarget > 0 && (
                   <ReferenceLine
                     y={monthlyTarget}
-                    stroke="#34d399"
+                    stroke="var(--profit)"
                     strokeDasharray="4 4"
-                    label={{ value: `Target: $${monthlyTarget}`, fill: "#34d399", fontSize: 10, position: "top" }}
+                    label={{ value: `Target: $${monthlyTarget}`, fill: "var(--profit)", fontSize: 10, position: "top" }}
                   />
                 )}
                 <Tooltip
@@ -632,12 +632,12 @@ export default function DashboardPage() {
                 <Area
                   type="monotone"
                   dataKey="equity"
-                  stroke="#6366f1"
+                  stroke="var(--brand)"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#dashEqGrad)"
                   dot={false}
-                  activeDot={{ r: 5, fill: "#6366f1", stroke: "var(--surface)", strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: "var(--brand)", stroke: "var(--surface)", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>

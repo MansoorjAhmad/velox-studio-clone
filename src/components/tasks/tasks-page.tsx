@@ -127,11 +127,11 @@ export function TasksPage() {
           <p className="text-2xl font-bold tabular text-foreground">{todoTasks.length}</p>
           <p className="text-xs text-foreground-subtle">To Do</p>
         </div>
-        <div className="rounded-lg border border-brand/30 bg-brand/5 px-4 py-3">
+        <div className="rounded-lg border border-brand/30 bg-surface px-4 py-3">
           <p className="text-2xl font-bold tabular text-brand">{inProgressTasks.length}</p>
           <p className="text-xs text-foreground-subtle">In Progress</p>
         </div>
-        <div className="rounded-lg border border-profit/30 bg-profit/5 px-4 py-3">
+        <div className="rounded-lg border border-profit/30 bg-surface px-4 py-3">
           <p className="text-2xl font-bold tabular text-profit">{doneTasks.length}</p>
           <p className="text-xs text-foreground-subtle">Completed</p>
         </div>

@@ -296,18 +296,18 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
                 <AreaChart data={monthStats.dailySeries}>
                   <defs>
                     <linearGradient id="calCumGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="var(--brand)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="day" hide />
                   <YAxis hide domain={["auto", "auto"]} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "8px", fontSize: "10px" }}
+                    contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "10px", color: "var(--foreground)" }}
                     formatter={(val) => [formatCurrency(Number(val)), "Cumulative"]}
                     labelFormatter={(d) => `Day ${d}`}
                   />
-                  <Area type="monotone" dataKey="cumulative" stroke="#6366f1" strokeWidth={2} fill="url(#calCumGrad)" dot={false} />
+                  <Area type="monotone" dataKey="cumulative" stroke="var(--brand)" strokeWidth={2} fill="url(#calCumGrad)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

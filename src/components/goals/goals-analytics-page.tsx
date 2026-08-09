@@ -91,7 +91,7 @@ export function GoalsAnalyticsPage() {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-profit/30 bg-profit/5">
+            <Card className="border-profit/30">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-profit font-bold uppercase tracking-wider">Overall Completion</p>

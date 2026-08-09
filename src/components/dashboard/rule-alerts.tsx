@@ -60,7 +60,7 @@ export function RuleAlerts({ alerts, compact = false, maxItems = 8 }: RuleAlerts
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="py-8 text-center border border-dashed border-profit/30 rounded-lg bg-profit/5">
+          <div className="py-8 text-center border border-dashed border-profit/30 rounded-lg">
             <p className="text-sm font-semibold text-profit">No violations detected</p>
             <p className="text-xs text-foreground-muted mt-1">
               Your recent trades respect your risk rules. Keep it up.

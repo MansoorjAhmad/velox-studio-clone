@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile, upsertProfile } from "@/lib/settings/actions";
 import {
@@ -61,7 +62,8 @@ export function SettingsPage() {
   const [accNumber, setAccNumber] = useState("");
   const [accBalance, setAccBalance] = useState("10000");
   const [accType, setAccType] = useState<"standard" | "cent" | "prop" | "funded">("prop");
-  const [accColor, setAccColor] = useState("#6366f1");
+  const [accColor, setAccColor] = useState("#1c1a15");
+  const [showResetModal, setShowResetModal] = useState(false);
   const [creatingAcc, setCreatingAcc] = useState(false);
 
   const supabase = createClient();
@@ -481,10 +483,28 @@ export function SettingsPage() {
             Your data is protected by Supabase Row Level Security.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex items-center gap-3">
           <Button variant="danger" size="sm" onClick={handleLogout}>
             <LogOut className="w-4 h-4" />
             Sign Out
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone — Reset All Data */}
+      <Card className="border-loss/30 bg-surface">
+        <CardHeader>
+          <CardTitle className="text-loss flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-loss" /> Danger Zone — Reset App Data
+          </CardTitle>
+          <CardDescription>
+            Reset local account preferences, active filters, and cached browser state. This gives you a clean slate.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="danger" size="sm" onClick={() => setShowResetModal(true)}>
+            <Trash2 className="w-4 h-4" />
+            Reset All Local Data
           </Button>
         </CardContent>
       </Card>
@@ -565,6 +585,37 @@ export function SettingsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Reset Data Confirmation Modal */}
+      <Modal open={showResetModal} onClose={() => setShowResetModal(false)} title="Reset All Local Data?">
+        <div className="space-y-4">
+          <p className="text-sm text-foreground-muted leading-relaxed">
+            Are you sure you want to reset your local accounts, active filter selections, and browser storage? This will revert the workspace to default state.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowResetModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                localStorage.removeItem("velox_local_accounts");
+                localStorage.removeItem("velox_active_account_id");
+                localStorage.removeItem("velox_local_trades");
+                localStorage.removeItem("velox_trading_config");
+                toast.success("All local data reset cleanly.");
+                setShowResetModal(false);
+                window.dispatchEvent(new Event("trading_accounts_changed"));
+                window.dispatchEvent(new Event("active_account_changed"));
+                setTimeout(() => window.location.reload(), 500);
+              }}
+            >
+              Yes, Reset Everything
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
