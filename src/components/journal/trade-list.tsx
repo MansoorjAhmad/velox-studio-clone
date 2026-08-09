@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ import { cn, formatCurrency, timeAgo } from "@/lib/utils";
 import type { Trade } from "@/lib/journal/types";
 import { getTradingAccounts } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
-import { useEffect } from "react";
+import { getCustomStrategies } from "@/lib/journal/strategies";
 
 type SortKey =
   | "entry_time"
@@ -69,13 +69,11 @@ export function TradeList({
     return map;
   }, [accounts]);
 
-  const setups = useMemo(
-    () =>
-      Array.from(
-        new Set(trades.map((t) => t.setup).filter(Boolean) as string[]),
-      ).sort(),
-    [trades],
-  );
+  const setups = useMemo(() => {
+    const logged = trades.map((t) => t.setup).filter(Boolean) as string[];
+    const custom = getCustomStrategies();
+    return Array.from(new Set([...logged, ...custom])).sort();
+  }, [trades]);
 
   const filtered = useMemo(() => {
     let list = [...trades];

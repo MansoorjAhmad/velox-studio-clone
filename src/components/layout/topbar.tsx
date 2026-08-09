@@ -45,6 +45,18 @@ function getGreeting(hour: number) {
   return "Good night";
 }
 
+function getCurrentSession(utcHour: number): { name: string; icon: string; color: string } {
+  if (utcHour >= 13 && utcHour < 16) {
+    return { name: "London / NY Overlap", icon: "⚡", color: "text-amber-700 border-amber-500/40 bg-amber-500/10" };
+  } else if (utcHour >= 7 && utcHour < 16) {
+    return { name: "London Session", icon: "🇬🇧", color: "text-emerald-800 border-emerald-500/40 bg-emerald-500/10" };
+  } else if (utcHour >= 13 && utcHour < 22) {
+    return { name: "New York Session", icon: "🇺🇸", color: "text-blue-800 border-blue-500/40 bg-blue-500/10" };
+  } else {
+    return { name: "Asian Session", icon: "🇯🇵", color: "text-purple-800 border-purple-500/40 bg-purple-500/10" };
+  }
+}
+
 interface TopBarProps {
   username: string;
   onMenuClick?: () => void;
@@ -111,6 +123,8 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
     month: "short",
     day: "numeric",
   });
+
+  const sessionInfo = getCurrentSession(now.getUTCHours());
 
   return (
     <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 sm:px-6 border-b border-border bg-surface/80 backdrop-blur-xl shrink-0">
@@ -195,6 +209,21 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
             </div>
           )}
         </div>
+
+        {/* Active Trading Session Badge */}
+        <div
+          className={cn(
+            "hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition-all shadow-2xs",
+            sessionInfo.color
+          )}
+          title={`Active Market Session: ${sessionInfo.name}`}
+        >
+          <span className="text-xs">{sessionInfo.icon}</span>
+          <span className="font-medium text-[11px]">{sessionInfo.name}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse ml-0.5" />
+        </div>
+
+        <div className="hidden md:block w-px h-5 bg-border" />
 
         {/* Live clock */}
         <div className="hidden sm:flex flex-col items-end">

@@ -29,6 +29,7 @@ import {
 import { createTrade, updateTrade } from "@/lib/journal/actions";
 import { getTradingAccounts } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
+import { getCustomStrategies, useStrategiesListener } from "@/lib/journal/strategies";
 import { useEffect } from "react";
 import { TrendingUp, TrendingDown, Loader2, Check, Plus, X, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -136,6 +137,14 @@ export function TradeForm({
   const [confluences, setConfluences] = useState<string[]>(
     initial?.confluences ?? [],
   );
+
+  const [setupsList, setSetupsList] = useState<string[]>(getCustomStrategies());
+
+  useEffect(() => {
+    return useStrategiesListener(() => {
+      setSetupsList(getCustomStrategies());
+    });
+  }, []);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -643,7 +652,7 @@ export function TradeForm({
                 onChange={(e) => setSetup(e.target.value)}
               >
                 <option value="">— none —</option>
-                {COMMON_SETUPS.map((s) => (
+                {setupsList.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>

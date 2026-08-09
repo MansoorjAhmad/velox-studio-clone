@@ -14,6 +14,13 @@ import type { TradingAccount } from "@/lib/accounts/types";
 import { getApiKey, setApiKey, clearApiKey } from "@/lib/zenith/api-key";
 import { getTradingConfig, saveTradingConfig, type TradingConfig } from "@/lib/trading-config";
 import {
+  getCustomStrategies,
+  addCustomStrategy,
+  deleteCustomStrategy,
+  useStrategiesListener,
+  DEFAULT_SETUPS,
+} from "@/lib/journal/strategies";
+import {
   Card,
   CardContent,
   CardHeader,
@@ -38,6 +45,7 @@ import {
   Plus,
   Trash2,
   Check,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -65,6 +73,32 @@ export function SettingsPage() {
   const [accColor, setAccColor] = useState("#1c1a15");
   const [showResetModal, setShowResetModal] = useState(false);
   const [creatingAcc, setCreatingAcc] = useState(false);
+
+  const [strategies, setStrategies] = useState<string[]>(getCustomStrategies());
+  const [newStrategyInput, setNewStrategyInput] = useState("");
+
+  useEffect(() => {
+    return useStrategiesListener(() => {
+      setStrategies(getCustomStrategies());
+    });
+  }, []);
+
+  const handleAddStrategy = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStrategyInput.trim()) return;
+    const updated = addCustomStrategy(newStrategyInput);
+    setStrategies(updated);
+    setNewStrategyInput("");
+    toast.success("Strategy setup added", {
+      description: `${newStrategyInput.trim()} is now active across Trade Log & Filters.`,
+    });
+  };
+
+  const handleDeleteStrategy = (name: string) => {
+    const updated = deleteCustomStrategy(name);
+    setStrategies(updated);
+    toast.success("Custom strategy removed");
+  };
 
   const supabase = createClient();
   const router = useRouter();
@@ -305,25 +339,59 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Primary Strategy & Setup Model</Label>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Primary Default Strategy Model</Label>
               <select
                 value={tradingConfig.topgPhase}
                 onChange={(e) => setTradingConfig((c) => ({ ...c, topgPhase: e.target.value }))}
                 className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
               >
-                {[
-                  "ICT Silver Bullet",
-                  "Fair Value Gap (FVG)",
-                  "Order Block (OB)",
-                  "Break of Structure (BOS)",
-                  "Liquidity Sweep (QML)",
-                  "Double Bottom / Top (DB/DT)",
-                  "Support / Resistance Flip (SBR/RBS)",
-                ].map((phase) => (
+                {strategies.map((phase) => (
                   <option key={phase}>{phase}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Strategy Management List & Form */}
+            <div className="space-y-2 sm:col-span-2 rounded-lg border border-border bg-surface-2/40 p-3">
+              <Label className="text-xs font-semibold">Active Strategies & Setups ({strategies.length})</Label>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {strategies.map((s) => {
+                  const isDefault = DEFAULT_SETUPS.includes(s);
+                  return (
+                    <div
+                      key={s}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-surface text-xs font-medium text-foreground shadow-2xs"
+                    >
+                      <span>{s}</span>
+                      {!isDefault && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteStrategy(s)}
+                          className="hover:text-loss text-foreground-subtle transition-colors"
+                          title="Remove custom strategy"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add Strategy Form */}
+              <form onSubmit={handleAddStrategy} className="flex gap-2 pt-2">
+                <Input
+                  placeholder="Add new strategy setup (e.g. FVG Invalidation)..."
+                  value={newStrategyInput}
+                  onChange={(e) => setNewStrategyInput(e.target.value)}
+                  className="h-9 text-xs bg-surface"
+                />
+                <Button type="submit" size="sm" className="h-9 text-xs shrink-0 font-semibold">
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Strategy
+                </Button>
+              </form>
             </div>
             <div className="space-y-1.5">
               <Label>Number Typography Standard</Label>
