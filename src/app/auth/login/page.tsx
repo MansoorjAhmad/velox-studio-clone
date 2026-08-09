@@ -157,16 +157,12 @@ export default function LoginPage() {
 
       {/* Right panel — brand visual (hidden on mobile) */}
       <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative bg-surface border-l border-border overflow-hidden">
-        <div className="absolute inset-0 bg-dots opacity-30 pointer-events-none" />
-        <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-brand/12 blur-[100px] pointer-events-none rounded-full" />
-        <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] bg-profit/8 blur-[80px] pointer-events-none rounded-full" />
-
         <div className="relative z-10 max-w-xs text-center space-y-6">
-          <div className="w-20 h-20 rounded-2xl bg-brand/15 border border-brand/25 flex items-center justify-center mx-auto animate-glow-pulse">
+          <div className="w-20 h-20 rounded-2xl bg-brand/15 border border-brand/25 flex items-center justify-center mx-auto">
             <Sparkles className="w-10 h-10 text-brand" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">
+            <h2 className="text-xl font-bold font-display tracking-tight">
               The OS built for<br />serious traders.
             </h2>
             <p className="text-sm text-foreground-muted mt-3 leading-relaxed">
@@ -175,7 +171,7 @@ export default function LoginPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 text-left">
             {[
-              { stat: "100%", label: "Dark mode first" },
+              { stat: "100%", label: "Parchment design" },
               { stat: "5-in-1", label: "All-in-one workspace" },
               { stat: "AI", label: "Zenith co-pilot" },
               { stat: "∞", label: "Trade logging" },

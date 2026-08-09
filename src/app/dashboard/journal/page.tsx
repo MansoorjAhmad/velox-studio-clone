@@ -75,7 +75,7 @@ export default function JournalPage() {
             <BookOpen className="w-5 h-5 text-brand" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Trade Log</h1>
+            <h1 className="text-2xl font-bold font-display tracking-tight">Trade Log</h1>
             <p className="text-sm text-foreground-muted">Your execution archive — capture the trade, then review the behavior behind it.</p>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function JournalPage() {
             </Card>
           ))}
         </div>
-        <Card className="lg:col-span-4 command-grid signal-sweep border-brand/20 glass-subtle card-hover">
+        <Card className="lg:col-span-4 border-brand/20 card-hover">
           <CardContent className="p-4">
             <p className="text-[9px] uppercase tracking-[0.16em] text-brand font-bold">Review protocol</p>
             <p className="text-sm font-bold mt-1">Log → tag → inspect → adjust.</p>
