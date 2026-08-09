@@ -231,11 +231,10 @@ export function RoutineAnalyticsPage() {
               <div className="grid grid-cols-7 md:grid-cols-10 lg:grid-cols-15 gap-1 overflow-x-auto">
                 {stats.heatDays.map((d) => {
                   const bg =
-                    d.pct >= 90 ? "bg-profit/30 border-profit/50 text-profit" :
-                    d.pct >= 70 ? "bg-brand/20 border-brand/40 text-brand" :
-                    d.pct >= 40 ? "bg-amber-400/15 border-amber-400/30 text-amber-400" :
-                    d.pct > 0 ? "bg-loss/15 border-loss/30 text-loss" :
-                    "bg-surface-2/30 border-border/40 text-foreground-subtle/50";
+                    d.pct >= 70 ? "bg-surface-2 border-profit/40 text-profit" :
+                    d.pct >= 40 ? "bg-surface-2 border-warning/40 text-warning" :
+                    d.pct > 0   ? "bg-surface-2 border-loss/40 text-loss" :
+                    "bg-surface-2 border-border/40 text-foreground-subtle";
                   return (
                     <div
                       key={d.date}
@@ -243,7 +242,7 @@ export function RoutineAnalyticsPage() {
                       title={`${d.date}: ${d.completed}/${d.total} (${d.pct}%)`}
                     >
                       <span className="text-[7px] opacity-70">{d.label}</span>
-                      <span className="text-[10px] font-bold">{d.pct}%</span>
+                      <span className="font-display font-medium text-[10px]">{d.pct}%</span>
                       <span className="text-[6px] opacity-60">{d.completed}/{d.total}</span>
                     </div>
                   );

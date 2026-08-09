@@ -463,9 +463,9 @@ export function PositionCalculator() {
         <Card className="md:col-span-5 border-brand/20 bg-gradient-to-br from-brand/8 via-surface to-surface-2 flex flex-col card-hover">
           <CardHeader className="pb-2">
             <Badge variant="brand" className="w-fit mb-1 text-[10px] uppercase tracking-wider">Recommended Lot Size</Badge>
-            <CardTitle className="text-4xl font-extrabold font-mono text-brand tracking-tight tabular">
+            <CardTitle className="font-display text-4xl font-medium text-brand tracking-tight">
               {calculation ? `${calculation.recommendedLots}` : "0.00"}
-              <span className="text-lg font-bold text-foreground-muted ml-1.5">Lots</span>
+              <span className="text-lg font-medium text-foreground-muted ml-1.5">Lots</span>
             </CardTitle>
             <CardDescription>{accountType === "cent" ? "Cent Account (USC)" : "Standard Lot"} — {instrument.name}</CardDescription>
           </CardHeader>

@@ -104,7 +104,7 @@ export function FinancesPage() {
             <DollarSign className="w-5 h-5 text-brand" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Finances</h1>
+            <h1 className="font-display text-2xl font-medium tracking-tight">Finances</h1>
             <p className="text-sm text-foreground-muted">
               Income, expenses, and debt payoff.
             </p>
@@ -553,7 +553,7 @@ function getDebtStatus(debt: Debt): DebtStatus {
 
 const STATUS_CONFIG: Record<DebtStatus, { label: string; className: string }> = {
   active: { label: "Active", className: "bg-brand/15 text-brand" },
-  due_soon: { label: "Due Soon", className: "bg-amber-400/15 text-amber-400" },
+  due_soon: { label: "Due Soon", className: "bg-warning/15 text-warning" },
   overdue: { label: "Overdue", className: "bg-loss/15 text-loss" },
   paid: { label: "Fully Paid", className: "bg-profit/15 text-profit" },
 };

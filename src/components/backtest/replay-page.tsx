@@ -281,7 +281,7 @@ export function ReplayPage() {
               <Activity className="w-5 h-5 text-brand" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Backtesting Replay</h1>
+              <h1 className="font-display text-xl font-medium tracking-tight">Backtesting Replay</h1>
               <p className="text-xs text-foreground-muted">
                 Step through historical data, log simulated trades, test your edge risk-free.
               </p>

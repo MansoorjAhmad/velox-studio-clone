@@ -248,8 +248,55 @@ export function TradeList({
         </Select>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      {/* Mobile card list — visible below md breakpoint */}
+      <div className="md:hidden space-y-2">
+        {filtered.map((t) => (
+          <div
+            key={t.id}
+            onClick={() => setViewing(t)}
+            className="bg-surface-2 rounded-lg p-3 space-y-2 cursor-pointer active:opacity-80 transition-opacity border border-border/60"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-foreground">{t.symbol}</span>
+                <Badge variant={t.direction === "LONG" ? "profit" : "loss"} className="text-[10px]">
+                  {t.direction === "LONG" ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                  {t.direction}
+                </Badge>
+                {t.account_id && accountMap.has(t.account_id) && (
+                  <span className="text-[9px] font-mono font-medium text-brand">
+                    {accountMap.get(t.account_id)!.name}
+                  </span>
+                )}
+              </div>
+              <span
+                className={cn(
+                  "tabular font-semibold text-sm",
+                  (t.pnl ?? 0) > 0 && "text-profit",
+                  (t.pnl ?? 0) < 0 && "text-loss",
+                  t.pnl == null && "text-foreground-subtle",
+                )}
+              >
+                {t.pnl != null ? formatCurrency(t.pnl, { sign: true }) : "—"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-foreground-muted">
+              <span>{t.setup ?? "—"} · {t.session ?? "—"}</span>
+              <span>{timeAgo(t.entry_time)}</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] tabular text-foreground-muted pt-1.5 border-t border-border/50">
+              <span>Entry {t.entry_price?.toFixed(2) ?? "—"}</span>
+              <span>Exit {t.exit_price?.toFixed(2) ?? "—"}</span>
+              <span className={cn((t.r_multiple ?? 0) >= 0 ? "text-profit" : "text-loss", "font-semibold")}>
+                {t.r_multiple != null ? `${t.r_multiple > 0 ? "+" : ""}${t.r_multiple.toFixed(1)}R` : "—"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table — visible at md and above */}
+      <div className="hidden md:block rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

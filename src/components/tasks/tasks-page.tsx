@@ -77,7 +77,7 @@ export function TasksPage() {
             <CheckSquare className="w-5 h-5 text-brand" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tasks Command Center</h1>
+            <h1 className="font-display text-2xl font-medium tracking-tight">Tasks Command Center</h1>
             <p className="text-sm text-foreground-muted">
               Organize execution. Kanban & Eisenhower Matrix view.
             </p>
@@ -124,15 +124,15 @@ export function TasksPage() {
       {/* Quick KPI stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-border bg-surface px-4 py-3">
-          <p className="text-2xl font-bold tabular text-foreground">{todoTasks.length}</p>
+          <p className="font-display font-medium text-2xl text-foreground">{todoTasks.length}</p>
           <p className="text-xs text-foreground-subtle">To Do</p>
         </div>
         <div className="rounded-lg border border-brand/30 bg-surface px-4 py-3">
-          <p className="text-2xl font-bold tabular text-brand">{inProgressTasks.length}</p>
+          <p className="font-display font-medium text-2xl text-brand">{inProgressTasks.length}</p>
           <p className="text-xs text-foreground-subtle">In Progress</p>
         </div>
         <div className="rounded-lg border border-profit/30 bg-surface px-4 py-3">
-          <p className="text-2xl font-bold tabular text-profit">{doneTasks.length}</p>
+          <p className="font-display font-medium text-2xl text-profit">{doneTasks.length}</p>
           <p className="text-xs text-foreground-subtle">Completed</p>
         </div>
       </div>
