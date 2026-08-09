@@ -87,6 +87,8 @@
   --color-brand-soft:       var(--brand-soft);
   --color-brand-foreground: var(--brand-foreground);
 
+  --font-mono: var(--font-serif), Georgia, serif;
+
   --radius-sm: var(--radius-sm);
   --radius:    var(--radius);
   --radius-lg: var(--radius-lg);
@@ -109,9 +111,9 @@
     letter-spacing: -0.011em;
   }
 
-  /* Ultra-premium luxury serif numbers across all metrics, tables, P&L, and financial indicators. */
-  .tabular {
-    font-family: var(--font-serif), Georgia, serif;
+  /* Ultra-premium luxury serif numbers across all metrics, tables, P&L, widgets, and financial indicators. */
+  .font-mono, .tabular {
+    font-family: var(--font-serif), Georgia, serif !important;
     font-variation-settings: "SOFT" 0, "opsz" 36;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.015em;
