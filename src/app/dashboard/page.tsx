@@ -15,7 +15,10 @@ import {
   breakdownBySession,
   buildRMultipleBuckets,
   buildCalendar,
+  calculateTradingScore,
 } from "@/lib/journal/metrics";
+import { calculateDisciplineScore } from "@/lib/routine/score";
+import { getRoutineItems, getRoutineLogs } from "@/lib/routine/actions";
 import { calculateSystemQuality } from "@/lib/journal/system-quality";
 import { calculateTraderIndex } from "@/lib/journal/trader-index";
 import { getTradingConfig } from "@/lib/trading-config";
@@ -23,6 +26,7 @@ import { TradingCalendarWidget } from "@/components/dashboard/trading-calendar-w
 import { TraderIndexGauge } from "@/components/dashboard/trader-index-gauge";
 import { LivePriceWidget } from "@/components/dashboard/live-price-widget";
 import { EconomicCalendarWidget } from "@/components/dashboard/economic-calendar-widget";
+import { PerformanceSnapshotWidget } from "@/components/dashboard/performance-snapshot-widget";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,6 +79,9 @@ export default function DashboardPage() {
   // After first data arrives, we keep stale data visible on refetch
   const [initialLoad, setInitialLoad] = useState(true);
   const [tradingConfig, setTradingConfig] = useState(getTradingConfig);
+  const [routineItemsCount, setRoutineItemsCount] = useState(0);
+  const [routineOverallPct, setRoutineOverallPct] = useState(0);
+  const [routineStreak, setRoutineStreak] = useState(0);
 
   const load = useCallback(async () => {
     const { data: authData } = await supabase.auth.getUser();
@@ -98,7 +105,31 @@ export default function DashboardPage() {
       }
       setTrades(data);
     }
-    // Mark initial load done — from here stale data stays visible
+
+    // Load routine data for Discipline Score
+    const [routineItemsRes, routineLogsRes] = await Promise.all([getRoutineItems(), getRoutineLogs()]);
+    const rItems = routineItemsRes.data ?? [];
+    const rLogs = routineLogsRes.data ?? [];
+    setRoutineItemsCount(rItems.length);
+
+    if (rItems.length > 0) {
+      const totalSlots = rItems.length * 30;
+      const completedCount = rLogs.length;
+      const pct = Math.min(100, Math.round((completedCount / (totalSlots || 1)) * 100));
+      setRoutineOverallPct(pct);
+
+      const logDates = new Set(rLogs.map((l) => l.log_date));
+      let curStreak = 0;
+      const d = new Date();
+      for (let i = 0; i < 30; i++) {
+        const key = d.toISOString().split("T")[0];
+        if (logDates.has(key)) curStreak++;
+        else break;
+        d.setDate(d.getDate() - 1);
+      }
+      setRoutineStreak(curStreak);
+    }
+
     setInitialLoad(false);
   }, [supabase]);
 
@@ -116,6 +147,11 @@ export default function DashboardPage() {
   }, [load]);
 
   const metrics = calculateMetrics(trades);
+  const tradingScore = useMemo(() => calculateTradingScore(metrics), [metrics]);
+  const disciplineScore = useMemo(
+    () => calculateDisciplineScore(routineOverallPct, routineStreak),
+    [routineOverallPct, routineStreak]
+  );
   const drawdown = calculateDrawdown(trades);
   const streak = currentStreak(trades);
   const equityCurve = useMemo(() => buildEquityCurve(trades), [trades]);
@@ -385,6 +421,14 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Performance Snapshot Widget — Trading & Discipline Scores */}
+      <PerformanceSnapshotWidget
+        tradingScore={tradingScore}
+        disciplineScore={disciplineScore}
+        hasTrades={metrics.closedTrades > 0}
+        hasRoutine={routineItemsCount > 0}
+      />
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 animate-stagger">

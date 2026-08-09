@@ -34,6 +34,40 @@ export interface Metrics {
   avgHoldMinutes: number;
 }
 
+/**
+ * Normalizes profit factor (an open-ended ratio) to a 0-100 scale.
+ * 0 -> 0, 1.0 (breakeven) -> 50, 2.0 (solid edge) -> 80, 3.0+ -> 100 (capped).
+ */
+function normalizeProfitFactor(pf: number): number {
+  if (!isFinite(pf)) return 100;
+  if (pf <= 0) return 0;
+  if (pf <= 1) return pf * 50;
+  if (pf <= 2) return 50 + (pf - 1) * 30;
+  if (pf <= 3) return 80 + (pf - 2) * 20;
+  return 100;
+}
+
+export interface TradingScore {
+  score: number;
+  grade: string;
+  winRateComponent: number;
+  profitFactorComponent: number;
+}
+
+export function calculateTradingScore(metrics: Metrics): TradingScore {
+  const winRateComponent = metrics.winRate * 100;
+  const profitFactorComponent = normalizeProfitFactor(metrics.profitFactor);
+  const score = Math.round((winRateComponent + profitFactorComponent) / 2);
+
+  const grade =
+    score >= 90 ? "A+ Apex" :
+    score >= 75 ? "A Solid" :
+    score >= 60 ? "B+ Building" :
+    score >= 40 ? "C Needs Focus" : "D Critical";
+
+  return { score, grade, winRateComponent, profitFactorComponent };
+}
+
 export function calculateMetrics(trades: Trade[]): Metrics {
   const closed = trades.filter(isClosed).sort(
     (a, b) =>
