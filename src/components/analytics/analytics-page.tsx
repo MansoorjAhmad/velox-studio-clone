@@ -239,7 +239,7 @@ export function AnalyticsPage() {
             </div>
             <div>
               <h1 className="font-display text-2xl font-medium tracking-tight">Performance Analytics</h1>
-              <p className="text-xs text-foreground-muted">Quantitative edge analysis, equity curve, TradeZella calendar &amp; session breakdown.</p>
+              <p className="text-xs text-foreground-muted">Quantitative edge analysis, equity curve, Velox calendar &amp; session breakdown.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -256,7 +256,7 @@ export function AnalyticsPage() {
                       : "text-foreground-muted hover:text-foreground"
                   )}
                 >
-                  {tab === "overview" ? "Overview" : tab === "calendar" ? "📅 TradeZella Calendar" : "Detailed Stats"}
+                  {tab === "overview" ? "Overview" : tab === "calendar" ? "📅 Velox Calendar" : "Detailed Edge Stats"}
                 </button>
               ))}
             </div>
@@ -304,11 +304,12 @@ export function AnalyticsPage() {
         })()
       )}
 
-      {/* ═══ TAB: TRADEZELLA CALENDAR ═══ */}
+      {/* ═══ TAB: VELOX CALENDAR ═══ */}
       {activeTab === "calendar" ? (
         <TradingCalendarWidget trades={filteredTrades} />
-      ) : (
+      ) : activeTab === "overview" ? (
         <>
+          {/* ═══ TAB: OVERVIEW ═══ */}
           {/* ═══ PRIMARY KPI ROW ═══ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger">
         {[
@@ -583,8 +584,11 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* ═══ HOURLY EXECUTION HEATMAP ═══ */}
+        </>
+      ) : (
+        <>
+          {/* ═══ TAB: DETAILED EDGE STATS ═══ */}
+          {/* ═══ HOURLY EXECUTION HEATMAP ═══ */}
       <Card className="card-hover">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
