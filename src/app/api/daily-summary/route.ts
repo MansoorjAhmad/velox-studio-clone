@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isRateLimited, requestClientKey } from "@/lib/server/rate-limit";
 
 /**
  * Daily Summary Email API Route
@@ -14,18 +15,26 @@ import { createClient } from "@/lib/supabase/server";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_TO = process.env.SUMMARY_EMAIL_TO;
-const FROM_EMAIL = "zenith@veloxstudio.app";
+const CRON_SECRET = process.env.CRON_SECRET;
+// Resend's free test sender. It can send only to the Resend-account email.
+const FROM_EMAIL = "Velox Studio <onboarding@resend.dev>";
 
-export async function GET() {
-  if (!RESEND_API_KEY || !EMAIL_TO) {
+export async function GET(req: NextRequest) {
+  if (!CRON_SECRET || req.headers.get("authorization") !== `Bearer ${CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (isRateLimited(`daily-summary:${requestClientKey(req)}`, 5, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+  if (!RESEND_API_KEY || !EMAIL_TO || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json(
-      { error: "Missing RESEND_API_KEY or SUMMARY_EMAIL_TO env vars" },
+      { error: "Missing daily-summary server configuration" },
       { status: 400 },
     );
   }
 
   // Fetch today's trades from Supabase
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const todayStr = new Date().toISOString().split("T")[0];
 
   const { data: trades, error } = await supabase

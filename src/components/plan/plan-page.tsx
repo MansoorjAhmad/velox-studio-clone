@@ -29,6 +29,7 @@ import {
   Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 interface PlanItem {
   id: string;
@@ -87,6 +88,26 @@ const DEFAULT_PLAN_ITEMS: PlanItem[] = [
   },
 ];
 
+const PLAN_STORAGE_KEY = "velox_master_plan_v1";
+
+export async function syncMasterPlanFromServer(): Promise<PlanItem[] | null> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase.from("user_master_plan").select("plan_data").eq("user_id", user.id).maybeSingle();
+  if (error || !Array.isArray(data?.plan_data)) return null;
+  const plan = data.plan_data as PlanItem[];
+  localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(plan));
+  return plan;
+}
+
+export async function saveMasterPlanSynced(planData: PlanItem[]): Promise<void> {
+  localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(planData));
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await supabase.from("user_master_plan").upsert({ user_id: user.id, plan_data: planData });
+}
+
 export function PlanPage() {
   const [items, setItems] = useState<PlanItem[]>([]);
   const [tab, setTab] = useState<"trading" | "life" | "financial" | "mindset">("trading");
@@ -99,7 +120,7 @@ export function PlanPage() {
   const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("velox_master_plan_v1");
+    const saved = localStorage.getItem(PLAN_STORAGE_KEY);
     if (saved) {
       try {
         setItems(JSON.parse(saved));
@@ -108,13 +129,14 @@ export function PlanPage() {
       }
     } else {
       setItems(DEFAULT_PLAN_ITEMS);
-      localStorage.setItem("velox_master_plan_v1", JSON.stringify(DEFAULT_PLAN_ITEMS));
+      localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(DEFAULT_PLAN_ITEMS));
     }
+    syncMasterPlanFromServer().then((synced) => { if (synced) setItems(synced); });
   }, []);
 
   const saveItems = (updated: PlanItem[]) => {
     setItems(updated);
-    localStorage.setItem("velox_master_plan_v1", JSON.stringify(updated));
+    saveMasterPlanSynced(updated);
   };
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -235,7 +257,7 @@ export function PlanPage() {
             Financial Targets
           </TabsTrigger>
           <TabsTrigger value="mindset" className="gap-2">
-            <Brain className="w-4 h-4 text-amber-400" />
+            <Brain className="w-4 h-4 text-warning" />
             Mindset & Affirmations
           </TabsTrigger>
         </TabsList>

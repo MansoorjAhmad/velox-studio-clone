@@ -59,7 +59,7 @@ export function TraderIndexGauge({ breakdown }: TraderIndexGaugeProps) {
     { label: "Risk Consistency", value: riskConsistency, color: "bg-brand" },
     { label: "Rule Adherence", value: ruleAdherence, color: "bg-profit" },
     { label: "Emotional Control", value: emotionalControl, color: "bg-info" },
-    { label: "Revenge Discipline", value: revengeDiscipline, color: "bg-amber-400" },
+    { label: "Revenge Discipline", value: revengeDiscipline, color: "bg-warning" },
   ];
 
   return (

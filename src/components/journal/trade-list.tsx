@@ -56,9 +56,7 @@ export function TradeList({
   useEffect(() => {
     const loadAccs = async () => {
       const res = await getTradingAccounts();
-      const remote = res.data ?? [];
-      const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-      setAccounts([...remote, ...local]);
+      setAccounts(res.data ?? []);
     };
     loadAccs();
   }, []);

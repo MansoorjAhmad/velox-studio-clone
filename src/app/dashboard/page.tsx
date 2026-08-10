@@ -21,7 +21,8 @@ import { calculateDisciplineScore } from "@/lib/routine/score";
 import { getRoutineItems, getRoutineLogs } from "@/lib/routine/actions";
 import { calculateSystemQuality } from "@/lib/journal/system-quality";
 import { calculateTraderIndex } from "@/lib/journal/trader-index";
-import { getTradingConfig } from "@/lib/trading-config";
+import { getTradingConfig, syncTradingConfigFromServer } from "@/lib/trading-config";
+import { getActiveAccountId, setActiveAccountIdSynced, syncActiveAccountFromServer } from "@/lib/accounts/active-account";
 import { TradingCalendarWidget } from "@/components/dashboard/trading-calendar-widget";
 import { TraderIndexGauge } from "@/components/dashboard/trader-index-gauge";
 import { PerformanceSnapshotWidget } from "@/components/dashboard/performance-snapshot-widget";
@@ -88,12 +89,10 @@ export default function DashboardPage() {
     }
 
     const [result, accountsResult] = await Promise.all([getTrades(), getTradingAccounts()]);
-    const remoteAccs = accountsResult.data ?? [];
-    const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-    const allAccs = [...remoteAccs, ...localAccs];
+    const allAccs = accountsResult.data ?? [];
     setAccounts(allAccs);
 
-    const savedAccId = localStorage.getItem("velox_active_account_id") || "all";
+    const savedAccId = getActiveAccountId();
     setActiveAccId(savedAccId);
 
     if (!result.error) {
@@ -132,6 +131,8 @@ export default function DashboardPage() {
   }, [supabase]);
 
   useEffect(() => {
+    syncTradingConfigFromServer();
+    syncActiveAccountFromServer();
     load();
     setTradingConfig(getTradingConfig());
     const handleAccChange = () => load();
@@ -160,7 +161,7 @@ export default function DashboardPage() {
 
   const currentSession = useMemo(() => {
     const h = new Date().getUTCHours();
-    if (h >= 0 && h < 8) return { name: "Asian Session", emoji: "🌏", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/30" };
+    if (h >= 0 && h < 8) return { name: "Asian Session", emoji: "🌏", color: "text-warning", bg: "bg-warning/10 border-warning/30" };
     if (h >= 8 && h < 14) return { name: "London Session", emoji: "🇬🇧", color: "text-info", bg: "bg-info/10 border-info/30" };
     return { name: "New York Session", emoji: "🇺🇸", color: "text-brand", bg: "bg-brand/10 border-brand/30" };
   }, []);
@@ -229,7 +230,7 @@ export default function DashboardPage() {
   const topStrategy = strategyBreakdown.length > 0 ? strategyBreakdown[0].setup : "—";
 
   const activeBalance = useMemo(() => {
-    const activeAccId = typeof window === "undefined" ? "all" : localStorage.getItem("velox_active_account_id") ?? "all";
+    const activeAccId = getActiveAccountId();
     if (activeAccId !== "all") return accounts.find((account) => account.id === activeAccId)?.initial_balance ?? 10000;
     return accounts.length > 0 ? accounts.reduce((sum, account) => sum + Number(account.initial_balance || 0), 0) : 10000;
   }, [accounts]);
@@ -370,8 +371,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => {
-                  localStorage.setItem("velox_active_account_id", "all");
-                  window.dispatchEvent(new Event("active_account_changed"));
+                  setActiveAccountIdSynced("all");
                 }}
                 className="text-[10px] text-foreground-subtle hover:text-foreground underline font-mono"
               >
@@ -409,7 +409,7 @@ export default function DashboardPage() {
               </div>
               <div className="rounded-lg border border-border/80 bg-background/40 p-3">
                 <p className="text-[9px] uppercase tracking-wider text-foreground-subtle font-bold">System state</p>
-                <p className={cn("font-mono text-lg font-extrabold mt-1", systemQuality.overall >= 70 ? "text-profit" : "text-amber-400")}>{systemQuality.overall}/100</p>
+                <p className={cn("font-mono text-lg font-extrabold mt-1", systemQuality.overall >= 70 ? "text-profit" : "text-warning")}>{systemQuality.overall}/100</p>
                 <p className="text-[9px] text-foreground-muted">quality score</p>
               </div>
             </div>
@@ -829,7 +829,7 @@ export default function DashboardPage() {
           <Card className="card-hover">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-400" />
+                <Zap className="w-4 h-4 text-warning" />
                 Edge &amp; Streak Metrics
               </CardTitle>
             </CardHeader>
@@ -838,7 +838,7 @@ export default function DashboardPage() {
                 { label: "Best Trading Day", value: `+${formatCurrency(bestDayPnl)}`, color: "text-profit", icon: Award },
                 { label: "Top Asset", value: topAsset, color: "text-brand", icon: Globe },
                 { label: "Max Win Streak", value: `${metrics.maxWinStreak}`, color: "text-emerald-400", icon: Flame },
-                { label: "Top Strategy", value: topStrategy, color: "text-amber-400", icon: Shield },
+                { label: "Top Strategy", value: topStrategy, color: "text-warning", icon: Shield },
               ].map((m) => (
                 <div key={m.label} className="p-2.5 rounded-lg border border-border bg-surface-2/30">
                   <div className="flex items-center gap-1.5 mb-1">

@@ -12,6 +12,7 @@ import { callGemini } from "./gemini";
 import { detectPatterns, serializePatternsForAI } from "./patterns";
 import type { Trade } from "../journal/types";
 import { calculateMetrics, calculateDrawdown } from "../journal/metrics";
+import { createClient } from "@/lib/supabase/client";
 
 const REVIEW_CACHE_KEY = "velox_weekly_review_cache";
 
@@ -120,4 +121,22 @@ export function getCachedReview(): CachedReview | null {
   } catch {
     return null;
   }
+}
+
+export async function syncCachedReviewFromServer(): Promise<CachedReview | null> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return getCachedReview();
+  const { data, error } = await supabase.from("weekly_review_cache").select("review_data").eq("user_id", user.id).maybeSingle();
+  if (error || !data?.review_data) return getCachedReview();
+  const review = data.review_data as CachedReview;
+  cacheReview(review);
+  return review;
+}
+
+export async function cacheReviewSynced(review: CachedReview): Promise<void> {
+  cacheReview(review);
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await supabase.from("weekly_review_cache").upsert({ user_id: user.id, review_data: review });
 }

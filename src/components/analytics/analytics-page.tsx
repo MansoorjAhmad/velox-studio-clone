@@ -61,6 +61,7 @@ import {
 import { getTradingAccounts } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
 import { getTradingConfig } from "@/lib/trading-config";
+import { getActiveAccountId, setActiveAccountIdSynced } from "@/lib/accounts/active-account";
 
 export function AnalyticsPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -72,12 +73,10 @@ export function AnalyticsPage() {
 
   const load = useCallback(async () => {
     const [tradesRes, accsRes] = await Promise.all([getTrades(), getTradingAccounts()]);
-    const remoteAccs = accsRes.data ?? [];
-    const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-    const allAccs = [...remoteAccs, ...localAccs];
+    const allAccs = accsRes.data ?? [];
     setAccounts(allAccs);
 
-    const savedAccId = localStorage.getItem("velox_active_account_id") || "all";
+    const savedAccId = getActiveAccountId();
     setActiveAccId(savedAccId);
 
     let data = tradesRes.data ?? [];
@@ -164,7 +163,7 @@ export function AnalyticsPage() {
       return {
         session: sess,
         emoji: sess === "Asia" ? "🌏" : sess === "London" ? "🇬🇧" : "🇺🇸",
-        color: sess === "Asia" ? "border-l-amber-400" : sess === "London" ? "border-l-info" : "border-l-brand",
+        color: sess === "Asia" ? "border-l-warning" : sess === "London" ? "border-l-info" : "border-l-brand",
         count: st.length,
         pnl: st.reduce((s, t) => s + (t.pnl ?? 0), 0),
         winRate: st.length > 0 ? (sw.length / st.length) * 100 : 0,
@@ -292,8 +291,7 @@ export function AnalyticsPage() {
               </div>
               <button
                 onClick={() => {
-                  localStorage.setItem("velox_active_account_id", "all");
-                  window.dispatchEvent(new Event("active_account_changed"));
+                  setActiveAccountIdSynced("all");
                 }}
                 className="text-[10px] text-foreground-subtle hover:text-foreground underline font-mono"
               >

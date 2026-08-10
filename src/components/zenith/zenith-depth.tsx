@@ -7,7 +7,7 @@
  *  3. Natural-Language Query box over trade history (Gemini + local fallback)
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +28,9 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { detectPatterns, type DetectedPattern } from "@/lib/zenith/patterns";
 import {
   generateWeeklyReview,
-  cacheReview,
+  cacheReviewSynced,
   getCachedReview,
+  syncCachedReviewFromServer,
   currentWeekStart,
   type CachedReview,
 } from "@/lib/zenith/weekly-review";
@@ -173,12 +174,18 @@ function WeeklyReviewPanel({ trades }: { trades: Trade[] }) {
   const weekStart = currentWeekStart();
 
   // Load cached review on mount.
-  useMemo(() => {
+  useEffect(() => {
     const c = getCachedReview();
     if (c && c.weekStart === weekStart) {
       setCached(c);
       setReview(c.review);
     }
+    syncCachedReviewFromServer().then((synced) => {
+      if (synced?.weekStart === weekStart) {
+        setCached(synced);
+        setReview(synced.review);
+      }
+    });
   }, [weekStart]);
 
   const handleGenerate = useCallback(async () => {
@@ -199,7 +206,7 @@ function WeeklyReviewPanel({ trades }: { trades: Trade[] }) {
         generatedAt: new Date().toISOString(),
         review: result,
       };
-      cacheReview(entry);
+      cacheReviewSynced(entry);
       setCached(entry);
     } else {
       setError("Couldn't reach the AI engine. Set your Gemini API key in Settings to generate weekly reviews.");

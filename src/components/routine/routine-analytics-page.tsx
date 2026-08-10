@@ -205,12 +205,12 @@ export function RoutineAnalyticsPage() {
             ))}
           </div>
 
-          <Card className="card-hover border-amber-400/20">
+          <Card className="card-hover border-warning/20">
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Award className="w-8 h-8 text-amber-400" />
+                <Award className="w-8 h-8 text-warning" />
                 <div>
-                  <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">Discipline Index</p>
+                  <p className="text-xs font-bold text-warning uppercase tracking-wider">Discipline Index</p>
                   <p className="text-2xl font-extrabold">{stats.grade}</p>
                 </div>
               </div>

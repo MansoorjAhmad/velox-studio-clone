@@ -68,7 +68,7 @@ const CATEGORY_CONFIG: Record<RoutineCategory, { label: string; icon: React.Reac
   life: { label: "Life & Health", icon: <Heart className="w-3.5 h-3.5 text-rose-400" />, badge: "profit" },
   trading: { label: "Trading & Finance", icon: <TrendingUp className="w-3.5 h-3.5 text-brand" />, badge: "brand" },
   work: { label: "Work & Focus", icon: <Briefcase className="w-3.5 h-3.5 text-info" />, badge: "info" },
-  growth: { label: "Growth & Mindset", icon: <BookOpen className="w-3.5 h-3.5 text-amber-400" />, badge: "warning" },
+  growth: { label: "Growth & Mindset", icon: <BookOpen className="w-3.5 h-3.5 text-warning" />, badge: "warning" },
 };
 
 const CATEGORIES: RoutineCategory[] = ["deen", "life", "trading", "work", "growth"];

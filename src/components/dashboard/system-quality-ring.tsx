@@ -29,7 +29,7 @@ export function SystemQualityRing({ quality }: SystemQualityRingProps) {
   stops.push(`var(--surface-3) ${cursor}% 100%`);
 
   const scoreColor =
-    overall >= 80 ? "text-profit" : overall >= 60 ? "text-brand" : overall >= 40 ? "text-amber-400" : "text-loss";
+    overall >= 80 ? "text-profit" : overall >= 60 ? "text-brand" : overall >= 40 ? "text-warning" : "text-loss";
 
   return (
     <Card className="card-hover h-full">

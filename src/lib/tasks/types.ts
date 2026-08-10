@@ -33,14 +33,14 @@ export const TASK_STATUSES = ["todo", "in_progress", "done"] as const;
 export const PRIORITY_COLORS: Record<string, string> = {
   low: "text-foreground-muted",
   medium: "text-brand",
-  high: "text-amber-400",
+  high: "text-warning",
   urgent: "text-loss",
 };
 
 export const PRIORITY_BG: Record<string, string> = {
   low: "bg-foreground-muted/10",
   medium: "bg-brand/10",
-  high: "bg-amber-400/10",
+  high: "bg-warning/10",
   urgent: "bg-loss/10",
 };
 

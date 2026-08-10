@@ -280,7 +280,7 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
                 {
                   label: "Win Streak",
                   value: monthStats.winDayStreak > 0 ? `${monthStats.winDayStreak}d 🔥` : "—",
-                  color: "text-amber-400",
+                  color: "text-warning",
                 },
               ].map((s) => (
                 <div key={s.label} className="p-2.5 rounded-lg border border-border bg-surface-2/40 text-center">
@@ -396,7 +396,7 @@ export function TradingCalendarWidget({ trades }: TradingCalendarWidgetProps) {
                       {cd.dayNum}
                     </span>
                     {cd.data && cd.data.pnl > 0 && monthStats.winDayStreak > 0 && cd.dateStr === todayStr && (
-                      <Flame className="w-2.5 h-2.5 text-amber-400" />
+                      <Flame className="w-2.5 h-2.5 text-warning" />
                     )}
                     {cd.data && (
                       cd.data.pnl >= 0 ? (

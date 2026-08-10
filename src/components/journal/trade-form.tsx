@@ -33,6 +33,7 @@ import { getCustomStrategies, useStrategiesListener } from "@/lib/journal/strate
 import { useEffect } from "react";
 import { TrendingUp, TrendingDown, Loader2, Check, Plus, X, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getActiveAccountId } from "@/lib/accounts/active-account";
 
 const EMOTIONS = [...COMMON_EMOTIONS];
 const MISTAKES = [...COMMON_MISTAKES];
@@ -56,13 +57,11 @@ export function TradeForm({
   useEffect(() => {
     const loadAccs = async () => {
       const res = await getTradingAccounts();
-      const remote = res.data ?? [];
-      const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-      const list = [...remote, ...local];
+      const list = res.data ?? [];
       setAccounts(list);
 
       if (!initial?.account_id) {
-        const activeId = localStorage.getItem("velox_active_account_id");
+        const activeId = getActiveAccountId();
         if (activeId && activeId !== "all" && list.some((a) => a.id === activeId)) {
           setAccountId(activeId);
         } else if (list.length > 0) {

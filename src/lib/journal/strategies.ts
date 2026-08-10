@@ -3,6 +3,8 @@
  * Single source of truth for strategy models across Settings, Trade Form, and Trade List.
  */
 
+import { createClient } from "@/lib/supabase/client";
+
 export const DEFAULT_SETUPS = [
   "TJL 1",
   "TJL 2 (A+)",
@@ -64,4 +66,37 @@ export function useStrategiesListener(callback: () => void) {
     window.removeEventListener("velox_strategies_changed", handler);
     window.removeEventListener("storage", handler);
   };
+}
+
+export async function syncStrategiesFromServer(): Promise<string[]> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return getCustomStrategies();
+  const { data, error } = await supabase.from("user_strategies").select("name").eq("user_id", user.id);
+  if (error || !data) return getCustomStrategies();
+  const custom = data.map((strategy) => strategy.name).filter((name) => !DEFAULT_SETUPS.includes(name));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
+    window.dispatchEvent(new CustomEvent("velox_strategies_changed"));
+  }
+  return Array.from(new Set([...DEFAULT_SETUPS, ...custom]));
+}
+
+export async function addCustomStrategySynced(name: string): Promise<string[]> {
+  const updated = addCustomStrategy(name);
+  const trimmed = name.trim();
+  if (!trimmed || DEFAULT_SETUPS.includes(trimmed)) return updated;
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await supabase.from("user_strategies").upsert({ user_id: user.id, name: trimmed }, { onConflict: "user_id,name", ignoreDuplicates: true });
+  return updated;
+}
+
+export async function deleteCustomStrategySynced(name: string): Promise<string[]> {
+  const updated = deleteCustomStrategy(name);
+  if (DEFAULT_SETUPS.includes(name)) return updated;
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await supabase.from("user_strategies").delete().eq("user_id", user.id).eq("name", name);
+  return updated;
 }

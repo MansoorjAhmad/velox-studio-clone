@@ -284,10 +284,10 @@ export function ZenithPage() {
             <button
               onClick={fetchPatterns}
               disabled={patternsLoading}
-              className="flex items-center gap-3 p-4 rounded-xl border border-amber-400/20 bg-amber-400/5 hover:bg-amber-400/10 hover:border-amber-400/35 transition-all text-left group"
+              className="flex items-center gap-3 p-4 rounded-xl border border-warning/20 bg-warning/5 hover:bg-warning/10 hover:border-warning/35 transition-all text-left group"
             >
-              <div className="w-9 h-9 rounded-lg bg-amber-400/15 flex items-center justify-center shrink-0 group-hover:bg-amber-400/25 transition-colors">
-                {patternsLoading ? <Loader2 className="w-4 h-4 text-amber-400 animate-spin" /> : <Zap className="w-4 h-4 text-amber-400" />}
+              <div className="w-9 h-9 rounded-lg bg-warning/15 flex items-center justify-center shrink-0 group-hover:bg-warning/25 transition-colors">
+                {patternsLoading ? <Loader2 className="w-4 h-4 text-warning animate-spin" /> : <Zap className="w-4 h-4 text-warning" />}
               </div>
               <div>
                 <p className="text-sm font-bold">Detect Patterns</p>
@@ -376,13 +376,13 @@ export function ZenithPage() {
 
           {/* Pattern Detection Result Card */}
           {patterns && (
-            <Card glass className="border-amber-400/20 bg-amber-400/5">
+            <Card glass className="border-warning/20 bg-warning/5">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-amber-400" />
+                    <Zap className="w-5 h-5 text-warning" />
                     <CardTitle className="text-base">Detected Patterns</CardTitle>
-                    <Badge variant="outline" className="border-amber-400/30 text-amber-400 text-[10px]">Behavioral Analysis</Badge>
+                    <Badge variant="outline" className="border-warning/30 text-warning text-[10px]">Behavioral Analysis</Badge>
                   </div>
                   <Button size="sm" variant="ghost" onClick={fetchPatterns} className="text-xs">
                     <RefreshCw className="w-3 h-3" /> Re-scan

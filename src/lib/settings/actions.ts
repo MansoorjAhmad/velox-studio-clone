@@ -71,6 +71,13 @@ export async function resetAllUserData(): Promise<{ error?: string }> {
 
   // Delete user records from all Supabase tables
   await supabase.from("routine_logs").delete().eq("user_id", user.id);
+  await supabase.from("zenith_messages").delete().eq("user_id", user.id);
+  await supabase.from("backtest_trades").delete().eq("user_id", user.id);
+  await supabase.from("user_strategies").delete().eq("user_id", user.id);
+  await supabase.from("user_master_plan").delete().eq("user_id", user.id);
+  await supabase.from("weekly_review_cache").delete().eq("user_id", user.id);
+  await supabase.from("trading_config").delete().eq("user_id", user.id);
+  await supabase.from("user_preferences").delete().eq("user_id", user.id);
   await supabase.from("routine_items").delete().eq("user_id", user.id);
   await supabase.from("trades").delete().eq("user_id", user.id);
   await supabase.from("goals").delete().eq("user_id", user.id);

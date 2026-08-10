@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 import { chatWithAgent } from "@/lib/zenith/zenith-agent";
 import { createTask } from "@/lib/tasks/actions";
 import { createTrade } from "@/lib/journal/actions";
-import { Sparkles, X, Send, Loader2, Minimize2 } from "lucide-react";
+import { Sparkles, X, Send, Loader2, Minimize2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { clearZenithHistory, loadZenithHistory, saveZenithMessage } from "@/lib/zenith/history";
 
 interface Message {
   id: string;
@@ -18,13 +19,8 @@ interface Message {
 export function ZenithAgent() {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "agent",
-      text: "Hey! I'm your Velox Zenith Agent. Tell me about a trade, ask me to create a task, or describe your situation and I'll help you build a routine. What do you need?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -44,6 +40,15 @@ export function ZenithAgent() {
     }
   }, [open, minimized]);
 
+  useEffect(() => {
+    if (open && !historyLoaded) {
+      loadZenithHistory().then((stored) => {
+        setMessages(stored.length ? stored : [{ id: "welcome", role: "agent", text: "Hey! I'm your Velox Zenith Agent. Tell me about a trade, ask me to create a task, or describe your situation and I'll help you build a routine. What do you need?" }]);
+        setHistoryLoaded(true);
+      });
+    }
+  }, [open, historyLoaded]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -54,6 +59,7 @@ export function ZenithAgent() {
     // Add user message
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
+    saveZenithMessage("user", text);
 
     // Add loading placeholder
     const loadingId = crypto.randomUUID();
@@ -77,6 +83,7 @@ export function ZenithAgent() {
           : m,
       ),
     );
+    saveZenithMessage("agent", result.text);
 
     setSending(false);
   }, [input, sending, messages]);
@@ -86,6 +93,12 @@ export function ZenithAgent() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleClearHistory = async () => {
+    if (!window.confirm("Clear your Zenith chat history? This cannot be undone.")) return;
+    await clearZenithHistory();
+    setMessages([{ id: "welcome", role: "agent", text: "Hey! I'm your Velox Zenith Agent. Tell me about a trade, ask me to create a task, or describe your situation and I'll help you build a routine. What do you need?" }]);
   };
 
   // Toggle between floating bubble and chat panel
@@ -144,6 +157,9 @@ export function ZenithAgent() {
               </div>
             </div>
             <div className="flex items-center gap-0.5">
+              <button onClick={handleClearHistory} className="p-1.5 rounded hover:bg-surface-2 text-foreground-subtle hover:text-foreground transition-colors" title="Clear history">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={() => setMinimized(true)}
                 className="p-1.5 rounded hover:bg-surface-2 text-foreground-subtle hover:text-foreground transition-colors"

@@ -27,7 +27,7 @@ interface EconomicEvent {
 
 const IMPACT_COLOR = {
   high:   { dot: "bg-loss",    badge: "border-loss/30 text-loss bg-loss/8",    label: "High" },
-  medium: { dot: "bg-amber-400", badge: "border-amber-400/30 text-amber-400 bg-amber-400/8", label: "Med" },
+  medium: { dot: "bg-warning", badge: "border-warning/30 text-warning bg-warning/8", label: "Med" },
   low:    { dot: "bg-border",  badge: "border-border text-foreground-subtle",  label: "Low" },
 };
 

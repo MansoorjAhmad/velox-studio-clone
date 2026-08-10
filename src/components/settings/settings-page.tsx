@@ -11,12 +11,11 @@ import {
   updateTradingAccount,
 } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
-import { getApiKey, setApiKey, clearApiKey } from "@/lib/zenith/api-key";
-import { getTradingConfig, saveTradingConfig, type TradingConfig } from "@/lib/trading-config";
+import { getTradingConfig, saveTradingConfigSynced, type TradingConfig } from "@/lib/trading-config";
 import {
   getCustomStrategies,
-  addCustomStrategy,
-  deleteCustomStrategy,
+  addCustomStrategySynced,
+  deleteCustomStrategySynced,
   useStrategiesListener,
   DEFAULT_SETUPS,
 } from "@/lib/journal/strategies";
@@ -35,7 +34,6 @@ import { Modal } from "@/components/ui/modal";
 import {
   Settings,
   User,
-  Key,
   Palette,
   LogOut,
   Save,
@@ -57,8 +55,6 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [zenithKey, setZenithKey] = useState("");
-  const [zenithSaved, setZenithSaved] = useState(false);
   const [tradingConfig, setTradingConfig] = useState<TradingConfig>(() => getTradingConfig());
   const [configSaved, setConfigSaved] = useState(false);
 
@@ -83,10 +79,10 @@ export function SettingsPage() {
     });
   }, []);
 
-  const handleAddStrategy = (e: React.FormEvent) => {
+  const handleAddStrategy = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStrategyInput.trim()) return;
-    const updated = addCustomStrategy(newStrategyInput);
+    const updated = await addCustomStrategySynced(newStrategyInput);
     setStrategies(updated);
     setNewStrategyInput("");
     toast.success("Strategy setup added", {
@@ -94,8 +90,8 @@ export function SettingsPage() {
     });
   };
 
-  const handleDeleteStrategy = (name: string) => {
-    const updated = deleteCustomStrategy(name);
+  const handleDeleteStrategy = async (name: string) => {
+    const updated = await deleteCustomStrategySynced(name);
     setStrategies(updated);
     toast.success("Custom strategy removed");
   };
@@ -105,9 +101,7 @@ export function SettingsPage() {
 
   const loadAccounts = async () => {
     const res = await getTradingAccounts();
-    const remote = res.data ?? [];
-    const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-    setAccounts([...remote, ...local]);
+    setAccounts(res.data ?? []);
   };
 
   useEffect(() => {
@@ -128,8 +122,6 @@ export function SettingsPage() {
 
       await loadAccounts();
 
-      const storedKey = getApiKey();
-      setZenithKey(storedKey ?? "");
       setTradingConfig(getTradingConfig());
 
       setLoading(false);
@@ -154,8 +146,8 @@ export function SettingsPage() {
     }
   };
 
-  const handleSaveTradingConfig = () => {
-    saveTradingConfig(tradingConfig);
+  const handleSaveTradingConfig = async () => {
+    await saveTradingConfigSynced(tradingConfig);
     setConfigSaved(true);
     setTimeout(() => setConfigSaved(false), 2000);
   };
@@ -182,32 +174,7 @@ export function SettingsPage() {
 
     setCreatingAcc(false);
 
-    if (res.error) {
-      // If Supabase table isn't created or error occurs, fall back to local storage
-      const newAcc: TradingAccount = {
-        id: "local_" + Date.now(),
-        user_id: "local",
-        name: accName.trim(),
-        broker: accBroker.trim() || null,
-        account_number: accNumber.trim() || null,
-        currency,
-        initial_balance: parseFloat(accBalance) || 10000,
-        account_type: accType,
-        color: accColor,
-        is_default: accounts.length === 0,
-        created_at: new Date().toISOString(),
-      };
-      const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-      localAccs.push(newAcc);
-      localStorage.setItem("velox_local_accounts", JSON.stringify(localAccs));
-      setAccounts((prev) => [...prev, newAcc]);
-      setShowAddAccountModal(false);
-      setAccName("");
-      setAccBroker("");
-      setAccNumber("");
-      window.dispatchEvent(new Event("trading_accounts_changed"));
-      return;
-    }
+    if (res.error) { setAccError(res.error); return; }
 
     setShowAddAccountModal(false);
     setAccName("");
@@ -218,14 +185,6 @@ export function SettingsPage() {
   };
 
   const handleDeleteAccount = async (id: string) => {
-    if (id.startsWith("local_")) {
-      const localAccs = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-      const filtered = localAccs.filter((a: any) => a.id !== id);
-      localStorage.setItem("velox_local_accounts", JSON.stringify(filtered));
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
-      window.dispatchEvent(new Event("trading_accounts_changed"));
-      return;
-    }
     await deleteTradingAccount(id);
     await loadAccounts();
     window.dispatchEvent(new Event("trading_accounts_changed"));
@@ -528,71 +487,7 @@ export function SettingsPage() {
             </select>
           </div>
         </CardContent>
-      </Card>
-
-      {/* API Keys — Velox Zenith AI */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Key className="w-4 h-4" />
-            Velox Zenith AI Key
-          </CardTitle>
-          <CardDescription>
-            Enter your Velox Zenith AI access key to enable Zenith Agent and automated analysis.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Badge variant={zenithKey ? "profit" : "outline"}>
-              Velox Zenith
-            </Badge>
-            <span className="text-sm text-foreground-muted">
-              {zenithKey ? "Active & Connected" : "Not configured"}
-            </span>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Velox Zenith Key</Label>
-            <Input
-              type="password"
-              placeholder="vzs_key_..."
-              value={zenithKey}
-              onChange={(e) => {
-                setZenithKey(e.target.value);
-                setZenithSaved(false);
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => {
-                setApiKey(zenithKey);
-                setZenithSaved(true);
-                setTimeout(() => setZenithSaved(false), 2000);
-              }}
-              disabled={!zenithKey.trim()}
-            >
-              {zenithSaved ? "Saved ✓" : <Save className="w-4 h-4" />}
-              {!zenithSaved && "Save Key"}
-            </Button>
-            {zenithKey && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  clearApiKey();
-                  setZenithKey("");
-                  setZenithSaved(false);
-                }}
-              >
-                Remove
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security */}
+      </Card>`r`n`r`n      {/* Security */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">

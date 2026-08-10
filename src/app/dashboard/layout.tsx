@@ -10,6 +10,9 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { syncTradingConfigFromServer } from "@/lib/trading-config";
+import { syncStrategiesFromServer } from "@/lib/journal/strategies";
+import { syncActiveAccountFromServer } from "@/lib/accounts/active-account";
 
 export default function DashboardLayout({
   children,
@@ -30,6 +33,11 @@ export default function DashboardLayout({
       if (!session) {
         router.push("/auth/login");
       } else {
+        await Promise.all([
+          syncTradingConfigFromServer(),
+          syncStrategiesFromServer(),
+          syncActiveAccountFromServer(),
+        ]);
         if (session.user?.email) {
           setUsername(session.user.email.split("@")[0]);
         }

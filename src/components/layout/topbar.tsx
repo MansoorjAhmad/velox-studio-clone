@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 import { getTradingAccounts } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
+import { getActiveAccountId, setActiveAccountIdSynced } from "@/lib/accounts/active-account";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":                   "Dashboard",
@@ -47,7 +48,7 @@ function getGreeting(hour: number) {
 
 function getCurrentSession(utcHour: number): { name: string; icon: string; color: string } {
   if (utcHour >= 13 && utcHour < 16) {
-    return { name: "London / NY Overlap", icon: "⚡", color: "text-amber-700 border-amber-500/40 bg-amber-500/10" };
+    return { name: "London / NY Overlap", icon: "⚡", color: "text-warning border-warning/40 bg-warning/10" };
   } else if (utcHour >= 7 && utcHour < 16) {
     return { name: "London Session", icon: "🇬🇧", color: "text-emerald-800 border-emerald-500/40 bg-emerald-500/10" };
   } else if (utcHour >= 13 && utcHour < 22) {
@@ -73,18 +74,16 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
   useEffect(() => {
     const load = async () => {
       const res = await getTradingAccounts();
-      const remote = res.data ?? [];
-      const local = JSON.parse(localStorage.getItem("velox_local_accounts") || "[]");
-      const list = [...remote, ...local];
+      const list = res.data ?? [];
       setAccounts(list);
 
-      const saved = localStorage.getItem("velox_active_account_id");
-      if (saved) {
+      const saved = getActiveAccountId();
+      if (saved !== "all") {
         setSelectedAccId(saved);
       } else if (list.length > 0) {
         const defaultAcc = list.find((a) => a.is_default) ?? list[0];
         setSelectedAccId(defaultAcc.id);
-        localStorage.setItem("velox_active_account_id", defaultAcc.id);
+        setActiveAccountIdSynced(defaultAcc.id);
       }
     };
     load();
@@ -98,12 +97,11 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
     };
   }, []);
 
-  const handleSelectAccount = (id: string) => {
+  const handleSelectAccount = async (id: string) => {
     setSelectedAccId(id);
-    localStorage.setItem("velox_active_account_id", id);
+    await setActiveAccountIdSynced(id);
     setShowDropdown(false);
     // Dispatch custom event for reactive page filtering
-    window.dispatchEvent(new Event("active_account_changed"));
   };
 
   const activeAcc = accounts.find((a) => a.id === selectedAccId);

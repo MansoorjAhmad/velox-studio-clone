@@ -41,9 +41,9 @@ import {
   type Candle,
 } from "@/lib/backtest/ohlc-generator";
 import {
-  loadSimTrades,
-  saveSimTrades,
-  clearSimTrades,
+  syncSimTradesFromServer,
+  saveSimTradesSynced,
+  clearSimTradesSynced,
   openSimTrade,
   checkSimTradeAgainstCandle,
   closeSimTrade,
@@ -110,7 +110,7 @@ export function ReplayPage() {
 
   // ── Load saved sim trades on mount ──
   useEffect(() => {
-    setSimTrades(loadSimTrades());
+    syncSimTradesFromServer().then(setSimTrades);
   }, []);
 
   // ── Playback loop ──
@@ -157,14 +157,14 @@ export function ReplayPage() {
     });
     if (changed) {
       setSimTrades(updated);
-      saveSimTrades(updated);
+      saveSimTradesSynced(updated);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex]);
 
   const persistTrades = useCallback((next: SimTrade[]) => {
     setSimTrades(next);
-    saveSimTrades(next);
+    saveSimTradesSynced(next);
   }, []);
 
   // ── Derived data ──
@@ -199,7 +199,7 @@ export function ReplayPage() {
   const handleApplySeed = () => {
     setSeed(seedInput.trim() || "default");
     setSimTrades([]);
-    clearSimTrades();
+    clearSimTradesSynced();
     toast.info("New market generated", { description: `Seed: ${seedInput || "default"}` });
   };
 
@@ -213,7 +213,7 @@ export function ReplayPage() {
   };
 
   const handleClearTrades = () => {
-    clearSimTrades();
+    clearSimTradesSynced();
     setSimTrades([]);
     toast.success("Backtest trades cleared");
   };

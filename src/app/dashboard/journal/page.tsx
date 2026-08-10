@@ -16,6 +16,7 @@ import { calculateMetrics, currentStreak } from "@/lib/journal/metrics";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Target, ShieldAlert, Flame, ScanLine } from "lucide-react";
 import { PageTransition } from "@/components/ui/motion";
+import { getActiveAccountId } from "@/lib/accounts/active-account";
 
 export default function JournalPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -31,7 +32,7 @@ export default function JournalPage() {
       setError(result.error);
     } else {
       let data = result.data ?? [];
-      const activeAccId = localStorage.getItem("velox_active_account_id");
+      const activeAccId = getActiveAccountId();
       if (activeAccId && activeAccId !== "all") {
         data = data.filter((t: any) => t.account_id === activeAccId);
       }
@@ -91,7 +92,7 @@ export default function JournalPage() {
           {[
             { label: "Closed executions", value: metrics.closedTrades, icon: ScanLine, tone: "text-brand" },
             { label: "Net realized", value: `${metrics.netPnl >= 0 ? "+" : ""}${formatCurrency(metrics.netPnl)}`, icon: Target, tone: metrics.netPnl >= 0 ? "text-profit" : "text-loss" },
-            { label: "Profit factor", value: metrics.profitFactor === Infinity ? "∞" : metrics.profitFactor.toFixed(2), icon: ShieldAlert, tone: "text-amber-400" },
+            { label: "Profit factor", value: metrics.profitFactor === Infinity ? "∞" : metrics.profitFactor.toFixed(2), icon: ShieldAlert, tone: "text-warning" },
             { label: "Current sequence", value: streak.count ? `${streak.count}${streak.type === "win" ? "W" : "L"}` : "—", icon: Flame, tone: streak.type === "win" ? "text-profit" : "text-foreground" },
           ].map((stat) => (
             <Card key={stat.label} className="card-hover">

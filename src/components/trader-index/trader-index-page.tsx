@@ -16,6 +16,7 @@ import { getTradingConfig } from "@/lib/trading-config";
 import { Shield, BookOpen, Brain, Flame } from "lucide-react";
 import { PageTransition, FadeIn } from "@/components/ui/motion";
 import type { Trade } from "@/lib/journal/types";
+import { getActiveAccountId } from "@/lib/accounts/active-account";
 
 export function TraderIndexPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -24,8 +25,7 @@ export function TraderIndexPage() {
   const load = useCallback(async () => {
     const res = await getTrades();
     let data = res.data ?? [];
-    const activeAccId =
-      typeof window !== "undefined" ? localStorage.getItem("velox_active_account_id") : null;
+    const activeAccId = getActiveAccountId();
     if (activeAccId && activeAccId !== "all") {
       data = data.filter((t) => (t as Trade & { account_id?: string }).account_id === activeAccId);
     }

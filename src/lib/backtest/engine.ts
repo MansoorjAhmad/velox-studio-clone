@@ -12,6 +12,7 @@
 
 import { computeRMultiple } from "../journal/types";
 import type { Trade } from "../journal/types";
+import { createClient } from "@/lib/supabase/client";
 
 const STORAGE_KEY = "velox_backtest_trades";
 
@@ -68,6 +69,41 @@ export function saveSimTrades(trades: SimTrade[]): void {
 export function clearSimTrades(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
+}
+
+function toDbTrade(trade: SimTrade, userId: string) {
+  return { id: trade.id, user_id: userId, symbol: trade.symbol, direction: trade.direction, entry_price: trade.entryPrice, exit_price: trade.exitPrice, stop_loss: trade.stopLoss, take_profit: trade.takeProfit, quantity: trade.quantity, pnl: trade.pnl, r_multiple: trade.rMultiple, entry_candle_index: trade.entryCandleIndex, exit_candle_index: trade.exitCandleIndex, status: trade.status, entry_time: trade.entryTime, exit_time: trade.exitTime, pip_size: trade.pipSize, contract_size: trade.contractSize, notes: trade.notes };
+}
+
+function fromDbTrade(trade: Record<string, unknown>): SimTrade {
+  return { id: String(trade.id), symbol: String(trade.symbol), direction: trade.direction as SimTrade["direction"], entryPrice: Number(trade.entry_price), exitPrice: trade.exit_price == null ? null : Number(trade.exit_price), stopLoss: trade.stop_loss == null ? null : Number(trade.stop_loss), takeProfit: trade.take_profit == null ? null : Number(trade.take_profit), quantity: Number(trade.quantity), pnl: trade.pnl == null ? null : Number(trade.pnl), rMultiple: trade.r_multiple == null ? null : Number(trade.r_multiple), entryCandleIndex: Number(trade.entry_candle_index), exitCandleIndex: trade.exit_candle_index == null ? null : Number(trade.exit_candle_index), status: trade.status as SimTradeStatus, entryTime: String(trade.entry_time), exitTime: trade.exit_time == null ? null : String(trade.exit_time), pipSize: Number(trade.pip_size), contractSize: Number(trade.contract_size), notes: trade.notes == null ? null : String(trade.notes) };
+}
+
+export async function syncSimTradesFromServer(): Promise<SimTrade[]> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return loadSimTrades();
+  const { data, error } = await supabase.from("backtest_trades").select("*").eq("user_id", user.id).order("created_at", { ascending: true });
+  if (error || !data) return loadSimTrades();
+  const trades = data.map((trade) => fromDbTrade(trade as Record<string, unknown>));
+  saveSimTrades(trades);
+  return trades;
+}
+
+export async function saveSimTradesSynced(trades: SimTrade[]): Promise<void> {
+  saveSimTrades(trades);
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("backtest_trades").delete().eq("user_id", user.id);
+  if (trades.length) await supabase.from("backtest_trades").insert(trades.map((trade) => toDbTrade(trade, user.id)));
+}
+
+export async function clearSimTradesSynced(): Promise<void> {
+  clearSimTrades();
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) await supabase.from("backtest_trades").delete().eq("user_id", user.id);
 }
 
 // ────────────────────────────────────────────────────────────────
