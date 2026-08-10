@@ -159,7 +159,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
               className="w-2 h-2 rounded-full shrink-0"
               style={{ backgroundColor: activeAcc ? activeAcc.color : "var(--brand)" }}
             />
-            <span className="truncate max-w-[110px] text-foreground">
+            <span className="truncate max-w-[72px] sm:max-w-[110px] text-foreground">
               {selectedAccId === "all" ? "All Accounts" : activeAcc ? activeAcc.name : "Select Account"}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-foreground-subtle" />
@@ -269,7 +269,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
 
         {/* User avatar pill */}
         {username && (
-          <div className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-2.5 py-1.5 h-8">
+          <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-surface-2 px-2.5 py-1.5 h-8">
             <div className="w-4 h-4 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center shrink-0">
               <span className="text-[8px] font-bold text-brand uppercase">
                 {username.charAt(0)}

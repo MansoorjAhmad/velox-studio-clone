@@ -19,7 +19,7 @@ import {
 
 const MOBILE_NAV = [
   { name: "Home",      href: "/dashboard",              icon: LayoutDashboard },
-  { name: "Journal",   href: "/dashboard/journal",      icon: BookOpen },
+  { name: "Trade Log", href: "/dashboard/journal",      icon: BookOpen },
   { name: "Analytics", href: "/dashboard/analytics",    icon: BarChart3 },
   { name: "Index",     href: "/dashboard/trader-index", icon: Shield },
   { name: "Zenith",    href: "/dashboard/zenith",       icon: Sparkles },
@@ -29,7 +29,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-surface/95 backdrop-blur-xl">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
       <div className="grid grid-cols-5 h-16">
         {MOBILE_NAV.map((item) => {
           const active =
