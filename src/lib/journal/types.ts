@@ -38,6 +38,13 @@ export interface Trade {
 
   // Meta
   notes: string | null;
+  pre_trade_analysis?: string | null;
+  post_trade_review?: string | null;
+  lessons_learned?: string | null;
+  execution_checklist?: { label: string; checked: boolean }[] | null;
+  /** Private Supabase Storage paths, not public URLs. */
+  screenshot_urls?: string[] | null;
+  journaled_at?: string | null;
   status: "open" | "closed" | "breakeven";
   account_id?: string | null;
 

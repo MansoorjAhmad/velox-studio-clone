@@ -12,6 +12,7 @@ import { getActiveAccountId, setActiveAccountIdSynced } from "@/lib/accounts/act
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard":                   "Dashboard",
   "/dashboard/journal":           "Trade Log",
+  "/dashboard/journal-review":    "Journal",
   "/dashboard/trader-index":      "Trader Index",
   "/dashboard/analytics":         "My Stats",
   "/dashboard/economic-calendar": "Economic Calendar",

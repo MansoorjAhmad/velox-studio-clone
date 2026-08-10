@@ -24,6 +24,7 @@ import {
   Sparkles,
   Shield,
   Calendar,
+  NotebookPen,
   X,
 } from "lucide-react";
 import { type LucideIcon } from "lucide-react";
@@ -53,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "JOURNAL & PRACTICE",
     items: [
       { name: "Trade Log", href: "/dashboard/journal", icon: BookOpen },
+      { name: "Journal", href: "/dashboard/journal-review", icon: NotebookPen },
       { name: "Backtest Replay", href: "/dashboard/backtest", icon: Activity },
       { name: "Master Plan", href: "/dashboard/plan", icon: Compass },
     ],
