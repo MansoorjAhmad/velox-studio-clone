@@ -224,12 +224,14 @@ export function AnalyticsPage() {
       map.set(key, row);
       return map;
     }, new Map<string, { key: string; pnl: number; trades: number; wins: number; losses: number }>()).values());
-    const bestDay = dayRows.reduce((best, row) => row.pnl > best.pnl ? row : best, { pnl: 0, trades: 0, wins: 0, losses: 0, volume: 0, date: "-", label: "-", cumulative: 0 });
-    const worstDay = dayRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst, { pnl: 0, trades: 0, wins: 0, losses: 0, volume: 0, date: "-", label: "-", cumulative: 0 });
-    const bestMonth = monthRows.reduce((best, row) => row.pnl > best.pnl ? row : best, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
-    const worstMonth = monthRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
-    const bestWeek = weekRows.reduce((best, row) => row.pnl > best.pnl ? row : best, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
-    const worstWeek = weekRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
+    const emptyDay = { pnl: 0, trades: 0, wins: 0, losses: 0, volume: 0, date: "-", label: "-", cumulative: 0 };
+    const emptyPeriod = { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 };
+    const bestDay = dayRows.length ? dayRows.reduce((best, row) => row.pnl > best.pnl ? row : best) : emptyDay;
+    const worstDay = dayRows.length ? dayRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst) : emptyDay;
+    const bestMonth = monthRows.length ? monthRows.reduce((best, row) => row.pnl > best.pnl ? row : best) : emptyPeriod;
+    const worstMonth = monthRows.length ? monthRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst) : emptyPeriod;
+    const bestWeek = weekRows.length ? weekRows.reduce((best, row) => row.pnl > best.pnl ? row : best) : emptyPeriod;
+    const worstWeek = weekRows.length ? weekRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst) : emptyPeriod;
     const avgWinDay = winDays.length ? winDays.reduce((sum, d) => sum + d.pnl, 0) / winDays.length : 0;
     const avgLossDay = lossDays.length ? lossDays.reduce((sum, d) => sum + d.pnl, 0) / lossDays.length : 0;
     const totalVolume = closedTrades.reduce((sum, t) => sum + Number(t.quantity ?? 0), 0);
@@ -439,6 +441,7 @@ export function AnalyticsPage() {
           stats={richStats}
           streaks={streaks}
           yearCalendar={yearCalendar}
+          dayRows={dayRows}
         />
       )}
     </PageTransition>
@@ -725,7 +728,7 @@ function RangePanel({ title, data, color }: { title: string; data: { label: stri
   );
 }
 
-function CalendarTab({ year, setYear, stats, streaks, yearCalendar }: { year: number; setYear: (year: number) => void; stats: any; streaks: any; yearCalendar: any }) {
+function CalendarTab({ year, setYear, stats, streaks, yearCalendar, dayRows }: { year: number; setYear: (year: number) => void; stats: any; streaks: any; yearCalendar: any; dayRows: DayRow[] }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -790,12 +793,12 @@ function CalendarTab({ year, setYear, stats, streaks, yearCalendar }: { year: nu
         </CardContent>
       </Card>
 
-      <CalendarBreakdowns year={year} months={yearCalendar.months} stats={stats} />
+      <CalendarBreakdowns year={year} months={yearCalendar.months} stats={stats} dayRows={dayRows} />
     </div>
   );
 }
 
-function CalendarBreakdowns({ year, months, stats }: { year: number; months: any[]; stats: any }) {
+function CalendarBreakdowns({ year, months, stats, dayRows }: { year: number; months: any[]; stats: any; dayRows: DayRow[] }) {
   const quarterRows = Array.from({ length: 4 }, (_, quarter) => {
     const subset = months.slice(quarter * 3, quarter * 3 + 3);
     return { label: `Q${quarter + 1}`, months: subset };
@@ -808,7 +811,40 @@ function CalendarBreakdowns({ year, months, stats }: { year: number; months: any
     return { label: month.label, pnl, trades, winRate: trades ? wins / trades * 100 : 0 };
   });
   return <div className="space-y-6">
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">{quarterRows.map((quarter) => <Card key={quarter.label} className="card-hover"><CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base">{quarter.label}</CardTitle><span className="font-mono text-sm font-bold text-profit">{formatCurrency(quarter.months.reduce((sum, month) => sum + month.cells.filter(Boolean).reduce((inner: number, cell: any) => inner + (cell.data?.pnl ?? 0), 0), 0))}</span></CardHeader><CardContent><table className="w-full text-xs"><thead className="text-left text-foreground-muted"><tr><th className="pb-2">Month</th><th className="pb-2 text-right">Net Profit</th><th className="pb-2 text-right">Win Rate</th><th className="pb-2 text-right">Trades</th></tr></thead><tbody>{quarter.months.map((month: any) => { const row = monthGrid[month.month]; return <tr key={month.label} className="border-t border-border/70"><td className="py-2.5 font-semibold">{month.label}</td><td className={cn("py-2.5 text-right font-mono", row.pnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(row.pnl)}</td><td className="py-2.5 text-right">{pct(row.winRate)}</td><td className="py-2.5 text-right">{row.trades}</td></tr>; })}</tbody></table></CardContent></Card>)}</div>
-    <Card className="card-hover"><CardHeader><CardTitle className="text-base">{new Date(year, new Date().getMonth(), 1).toLocaleDateString("en-US", { month: "long" })} {year}</CardTitle><CardDescription>Monthly calendar detail and weekly trading activity.</CardDescription></CardHeader><CardContent className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6"><div className="grid grid-cols-7 gap-2">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <p key={day} className="text-center text-xs font-bold text-foreground-muted">{day}</p>)}{Array.from({ length: 35 }, (_, index) => { const cell = months[new Date().getMonth()].cells[index]; const pnl = cell?.data?.pnl ?? 0; return <div key={cell?.date ?? `empty-${index}`} className={cn("min-h-24 rounded-xl border border-border/70 p-2", cell?.data ? (pnl >= 0 ? "bg-profit/10" : "bg-loss/10") : "bg-surface/30")}><p className="font-mono text-xs font-bold">{cell?.day ?? ""}</p>{cell?.data ? <><p className={cn("mt-2 font-mono text-xs font-bold", pnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(pnl)}</p><p className="mt-1 text-[10px] text-foreground-muted">{cell.data.trades} trades</p></> : null}</div>; })}</div><div className="space-y-3"><StatCard label="Trading Days" value={stats.tradingDays} /><StatCard label="Day Win Rate" value={pct(stats.profitableDaysPct)} tone="brand" /><StatCard label="Winning Days" value={stats.winDays.length} tone="profit" /><StatCard label="Losing Days" value={stats.lossDays.length} tone="loss" /></div></CardContent></Card>
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">{quarterRows.map((quarter) => { const quarterPnl = quarter.months.reduce((sum, month) => sum + month.cells.filter(Boolean).reduce((inner: number, cell: any) => inner + (cell.data?.pnl ?? 0), 0), 0); return <Card key={quarter.label} className="card-hover"><CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base">{quarter.label}</CardTitle><span className={cn("font-mono text-sm font-bold", quarterPnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(quarterPnl)}</span></CardHeader><CardContent><table className="w-full text-xs"><thead className="text-left text-foreground-muted"><tr><th className="pb-2">Month</th><th className="pb-2 text-right">Net Profit</th><th className="pb-2 text-right">Win Rate</th><th className="pb-2 text-right">Trades</th></tr></thead><tbody>{quarter.months.map((month: any) => { const row = monthGrid[month.month]; return <tr key={month.label} className="border-t border-border/70"><td className="py-2.5 font-semibold">{month.label}</td><td className={cn("py-2.5 text-right font-mono", row.pnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(row.pnl)}</td><td className="py-2.5 text-right">{pct(row.winRate)}</td><td className="py-2.5 text-right">{row.trades}</td></tr>; })}</tbody></table></CardContent></Card>; })}</div>
+    <MonthlyCalendarDashboard year={year} dayRows={dayRows} stats={stats} />
   </div>;
+}
+
+function MonthlyCalendarDashboard({ year, dayRows, stats }: { year: number; dayRows: DayRow[]; stats: any }) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [percentMode, setPercentMode] = useState(false);
+  const base = new Date(year, new Date().getMonth() + monthOffset, 1);
+  const selectedYear = base.getFullYear();
+  const selectedMonth = base.getMonth();
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const startOffset = (new Date(selectedYear, selectedMonth, 1).getDay() + 6) % 7;
+  const dayMap = new Map(dayRows.map((day) => [day.date, day]));
+  const cells = Array.from({ length: Math.ceil((startOffset + daysInMonth) / 7) * 7 }, (_, index) => {
+    const day = index - startOffset + 1;
+    if (day < 1 || day > daysInMonth) return null;
+    const date = `${selectedYear}-${String(selectedMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return { day, date, data: dayMap.get(date) };
+  });
+  const weekly = Array.from({ length: Math.ceil(cells.length / 7) }, (_, index) => {
+    const weekDays = cells.slice(index * 7, index * 7 + 7).filter(Boolean) as { data?: DayRow }[];
+    const pnl = weekDays.reduce((sum, day) => sum + (day.data?.pnl ?? 0), 0);
+    const trades = weekDays.reduce((sum, day) => sum + (day.data?.trades ?? 0), 0);
+    return { label: `Week ${index + 1}`, pnl, trades };
+  });
+  const monthDays = cells.filter(Boolean).map((cell: any) => cell.data).filter(Boolean) as DayRow[];
+  const wins = monthDays.reduce((sum, day) => sum + day.wins, 0);
+  const losses = monthDays.reduce((sum, day) => sum + day.losses, 0);
+  const allMonthTrades = monthDays.reduce((sum, day) => sum + day.trades, 0);
+  const breakevens = Math.max(0, allMonthTrades - wins - losses);
+  const totalTrades = allMonthTrades;
+  const winPct = totalTrades ? wins / totalTrades * 100 : 0;
+  const lossPct = totalTrades ? losses / totalTrades * 100 : 0;
+  const calendarDays = monthDays.length;
+  return <Card className="card-hover"><CardHeader className="flex-row items-center justify-between"><div className="flex items-center gap-3"><button onClick={() => setMonthOffset((value) => value - 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-foreground-muted hover:text-foreground"><ChevronLeft className="h-4 w-4" /></button><CardTitle className="text-lg">{base.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</CardTitle><button onClick={() => setMonthOffset((value) => value + 1)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-foreground-muted hover:text-foreground"><ChevronRight className="h-4 w-4" /></button></div><div className="flex rounded-lg border border-border p-1"><button onClick={() => setPercentMode(false)} className={cn("px-2 py-1 text-xs font-bold", !percentMode && "rounded bg-brand text-brand-foreground")}>$</button><button onClick={() => setPercentMode(true)} className={cn("px-2 py-1 text-xs font-bold", percentMode && "rounded bg-brand text-brand-foreground")}>%</button></div></CardHeader><CardContent className="space-y-6"><div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">{weekly.map((week) => <div key={week.label} className="rounded-xl border border-border bg-surface/40 p-3 text-center"><p className="text-xs text-foreground-muted">{week.label}</p><p className={cn("mt-1 font-mono text-lg font-extrabold", week.pnl >= 0 ? "text-profit" : "text-loss")}>{percentMode ? pct(stats.netPnl ? week.pnl / Math.abs(stats.netPnl) * 100 : 0) : formatCurrency(week.pnl)}</p><p className="text-[10px] text-foreground-subtle">{week.trades} Trades</p></div>)}</div><div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6"><div><div className="grid grid-cols-7 gap-1.5">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <p key={day} className="pb-1 text-center text-xs font-bold text-foreground-muted">{day}</p>)}{cells.map((cell, index) => { const pnl = cell?.data?.pnl ?? 0; return <div key={cell?.date ?? `empty-${index}`} className={cn("min-h-24 rounded-2xl border border-border/70 p-2", cell?.data ? (pnl > 0 ? "bg-profit/10" : pnl < 0 ? "bg-loss/10" : "bg-brand/10") : "bg-surface/25")}><p className="font-mono text-xs font-bold text-foreground-muted">{cell ? String(cell.day).padStart(2, "0") : ""}</p>{cell?.data ? <><p className={cn("mt-3 font-mono text-sm font-extrabold", pnl >= 0 ? "text-profit" : "text-loss")}>{percentMode ? pct(stats.netPnl ? pnl / Math.abs(stats.netPnl) * 100 : 0) : formatCurrency(pnl)}</p><p className="mt-1 text-[10px] text-foreground-muted">{cell.data.trades} trades</p></> : null}</div>; })}</div></div><div className="flex flex-col justify-center gap-4"><div className="mx-auto grid h-52 w-52 place-items-center rounded-full" style={{ background: `conic-gradient(#34d399 0 ${winPct}%, #fb7185 ${winPct}% ${winPct + lossPct}%, var(--surface-2) ${winPct + lossPct}% 100%)` }}><div className="grid h-36 w-36 place-items-center rounded-full bg-surface text-center"><span className="font-mono text-2xl font-extrabold">{totalTrades}</span><span className="text-xs text-foreground-muted">Trades</span></div></div><div className="flex justify-center gap-4 text-xs"><span className="text-profit">● Wins {wins}</span><span className="text-loss">● Loss {losses}</span><span className="text-brand">● Breakeven {breakevens}</span></div><div className="grid grid-cols-2 gap-3"><StatCard label="Trading Days" value={calendarDays} /><StatCard label="Day Win Rate" value={pct(calendarDays ? monthDays.filter((day) => day.pnl > 0).length / calendarDays * 100 : 0)} tone="brand" /><StatCard label="Winning Days" value={monthDays.filter((day) => day.pnl > 0).length} tone="profit" /><StatCard label="Losing Days" value={monthDays.filter((day) => day.pnl < 0).length} tone="loss" /></div></div></div></CardContent></Card>;
 }
