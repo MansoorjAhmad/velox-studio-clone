@@ -1,102 +1,159 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { PageTransition, FadeIn } from "@/components/ui/motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ChartTooltip } from "@/components/ui/chart-tooltip";
 import { getTrades } from "@/lib/journal/actions";
-import { TradingCalendarWidget } from "@/components/dashboard/trading-calendar-widget";
-import {
-  buildEquityCurve,
-  calculateMetrics,
-  calculateDrawdown,
-  calculateDrawdownDetails,
-  buildStreakHistory,
-  breakdownBySetup,
-  breakdownBySymbol,
-  buildDrawdownCurve,
-  buildRMultipleBuckets,
-  buildEmotionStats,
-  buildMonthlyPnl,
-} from "@/lib/journal/metrics";
+import { calculateMetrics } from "@/lib/journal/metrics";
 import type { Trade } from "@/lib/journal/types";
-import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar,
-  Clock,
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  Award,
-  Globe,
-  Shield,
-  Flame,
-  Zap,
-  Target,
-  Layers,
-  Brain,
-  Loader2,
-} from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Cell,
-  Brush,
-  ReferenceLine,
-} from "recharts";
 import { getTradingAccounts } from "@/lib/accounts/actions";
 import type { TradingAccount } from "@/lib/accounts/types";
-import { getTradingConfig } from "@/lib/trading-config";
 import { getActiveAccountId, setActiveAccountIdSynced } from "@/lib/accounts/active-account";
+import { cn, formatCurrency } from "@/lib/utils";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  SlidersHorizontal,
+} from "lucide-react";
+
+type TabKey = "overview" | "wins" | "calendar";
+type Timeframe = "7D" | "30D" | "90D" | "ALL";
+
+type DayRow = {
+  date: string;
+  label: string;
+  pnl: number;
+  trades: number;
+  wins: number;
+  losses: number;
+  volume: number;
+  cumulative: number;
+};
+
+const tabs: { key: TabKey; label: string }[] = [
+  { key: "overview", label: "Overview" },
+  { key: "wins", label: "Wins vs Losses" },
+  { key: "calendar", label: "Calendar" },
+];
+
+const timeframes: Timeframe[] = ["7D", "30D", "90D", "ALL"];
+
+const moneyClass = (value: number) => value > 0 ? "text-profit" : value < 0 ? "text-loss" : "text-foreground";
+const pct = (value: number) => `${value.toFixed(1)}%`;
+
+function tradeDate(t: Trade) {
+  return (t.exit_time ?? t.entry_time).split("T")[0];
+}
+
+function monthKey(date: string) {
+  return date.slice(0, 7);
+}
+
+function weekKey(date: string) {
+  const d = new Date(`${date}T00:00:00`);
+  const start = new Date(d);
+  start.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return start.toISOString().split("T")[0];
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  tone = "neutral",
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  tone?: "neutral" | "profit" | "loss" | "brand";
+}) {
+  return (
+    <Card className="card-hover bg-surface/70">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-xs font-medium text-foreground-muted">{label}</p>
+          <span className={cn(
+            "mt-0.5 h-1.5 w-1.5 rounded-full",
+            tone === "profit" ? "bg-profit" : tone === "loss" ? "bg-loss" : tone === "brand" ? "bg-brand" : "bg-foreground-subtle",
+          )} />
+        </div>
+        <div className={cn(
+          "mt-2 text-2xl font-extrabold font-mono tabular",
+          tone === "profit" ? "text-profit" : tone === "loss" ? "text-loss" : tone === "brand" ? "text-brand" : "text-foreground",
+        )}>
+          {value}
+        </div>
+        {sub ? <p className="mt-1 text-[11px] text-foreground-subtle">{sub}</p> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniMetric({ label, value, tone = "neutral" }: { label: string; value: React.ReactNode; tone?: "neutral" | "profit" | "loss" | "brand" }) {
+  return (
+    <div className="flex items-center justify-between border-b border-border/70 py-3 last:border-b-0">
+      <span className="text-xs text-foreground-muted">{label}</span>
+      <span className={cn(
+        "text-sm font-bold font-mono tabular",
+        tone === "profit" ? "text-profit" : tone === "loss" ? "text-loss" : tone === "brand" ? "text-brand" : "text-foreground",
+      )}>
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export function AnalyticsPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
-  const [activeAccId, setActiveAccId] = useState<string>("all");
+  const [activeAccId, setActiveAccId] = useState("all");
   const [initialLoad, setInitialLoad] = useState(true);
   const [accountSwitching, setAccountSwitching] = useState(false);
-  const [timeframe, setTimeframe] = useState<"7D" | "30D" | "90D" | "ALL">("30D");
-  const [activeTab, setActiveTab] = useState<"overview" | "calendar" | "detailed">("overview");
+  const [timeframe, setTimeframe] = useState<Timeframe>("30D");
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
   const load = useCallback(async () => {
     const [tradesRes, accsRes] = await Promise.all([getTrades(), getTradingAccounts()]);
-    const allAccs = accsRes.data ?? [];
-    setAccounts(allAccs);
-
+    const allAccounts = accsRes.data ?? [];
     const savedAccId = getActiveAccountId();
-    setActiveAccId(savedAccId);
+    const loadedTrades = tradesRes.data ?? [];
 
-    let data = tradesRes.data ?? [];
-    if (savedAccId && savedAccId !== "all") {
-      data = data.filter((t: any) => t.account_id === savedAccId);
-    }
-    setTrades(data);
+    setAccounts(allAccounts);
+    setActiveAccId(savedAccId);
+    setTrades(savedAccId && savedAccId !== "all" ? loadedTrades.filter((t) => t.account_id === savedAccId) : loadedTrades);
     setInitialLoad(false);
   }, []);
 
   useEffect(() => {
     load();
-    const h = async () => { setAccountSwitching(true); await load(); setAccountSwitching(false); };
-    window.addEventListener("active_account_changed", h);
-    return () => window.removeEventListener("active_account_changed", h);
+    const handler = async () => {
+      setAccountSwitching(true);
+      await load();
+      setAccountSwitching(false);
+    };
+    window.addEventListener("active_account_changed", handler);
+    return () => window.removeEventListener("active_account_changed", handler);
   }, [load]);
 
-  /* ── Filter by timeframe ── */
   const filteredTrades = useMemo(() => {
     if (timeframe === "ALL") return trades;
     const days = timeframe === "7D" ? 7 : timeframe === "30D" ? 30 : 90;
@@ -104,911 +161,654 @@ export function AnalyticsPage() {
     return trades.filter((t) => new Date(t.entry_time) >= cutoff);
   }, [trades, timeframe]);
 
-  /* ── Metrics ── */
+  const closedTrades = useMemo(
+    () => filteredTrades.filter((t) => t.status === "closed" && t.pnl != null),
+    [filteredTrades],
+  );
+
   const metrics = useMemo(() => calculateMetrics(filteredTrades), [filteredTrades]);
-  const drawdown = useMemo(() => calculateDrawdown(filteredTrades), [filteredTrades]);
-  const ddDetails = useMemo(() => calculateDrawdownDetails(filteredTrades), [filteredTrades]);
-  const equityCurve = useMemo(() => buildEquityCurve(filteredTrades), [filteredTrades]);
-  const drawdownCurve = useMemo(() => buildDrawdownCurve(filteredTrades), [filteredTrades]);
-  const streakHistory = useMemo(() => buildStreakHistory(filteredTrades), [filteredTrades]);
-  const rBuckets = useMemo(() => buildRMultipleBuckets(filteredTrades), [filteredTrades]);
-  const emotionStats = useMemo(() => buildEmotionStats(filteredTrades), [filteredTrades]);
-  const monthlyPnl = useMemo(() => buildMonthlyPnl(filteredTrades, 6), [filteredTrades]);
-  const setupRows = useMemo(() => breakdownBySetup(filteredTrades), [filteredTrades]);
-  const symbolRows = useMemo(() => breakdownBySymbol(filteredTrades), [filteredTrades]);
 
-  const confluenceRows = useMemo(() => {
-    const map = new Map<string, { trades: number; wins: number; pnl: number }>();
-    for (const t of filteredTrades) {
-      if (t.status !== "closed" || t.pnl == null || !t.confluences?.length) continue;
-      for (const c of t.confluences) {
-        const ex = map.get(c) ?? { trades: 0, wins: 0, pnl: 0 };
-        map.set(c, {
-          trades: ex.trades + 1,
-          wins: ex.wins + (t.pnl > 0 ? 1 : 0),
-          pnl: ex.pnl + t.pnl,
-        });
-      }
+  const dayRows = useMemo<DayRow[]>(() => {
+    const map = new Map<string, Omit<DayRow, "label" | "cumulative">>();
+    for (const t of closedTrades) {
+      const date = tradeDate(t);
+      const row = map.get(date) ?? { date, pnl: 0, trades: 0, wins: 0, losses: 0, volume: 0 };
+      const pnl = t.pnl ?? 0;
+      row.pnl += pnl;
+      row.trades += 1;
+      row.wins += pnl > 0 ? 1 : 0;
+      row.losses += pnl < 0 ? 1 : 0;
+      row.volume += Number(t.quantity ?? 0);
+      map.set(date, row);
     }
-    return Array.from(map.entries())
-      .map(([tag, d]) => ({ tag, ...d, winRate: d.trades > 0 ? (d.wins / d.trades) * 100 : 0 }))
-      .sort((a, b) => b.pnl - a.pnl);
-  }, [filteredTrades]);
 
-  /* ── Stats ── */
-  const stats = useMemo(() => {
-    const closed = filteredTrades.filter((t) => t.status === "closed" && t.pnl != null);
-    const winners = closed.filter((t) => t.pnl! > 0);
-    const losers = closed.filter((t) => t.pnl! < 0);
+    let cumulative = 0;
+    return Array.from(map.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((row) => {
+        cumulative += row.pnl;
+        return {
+          ...row,
+          label: new Date(`${row.date}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          cumulative,
+        };
+      });
+  }, [closedTrades]);
 
-    const totalWinPnl = winners.reduce((s, t) => s + (t.pnl ?? 0), 0);
-    const totalLossPnl = Math.abs(losers.reduce((s, t) => s + (t.pnl ?? 0), 0));
-    const netPnl = totalWinPnl - totalLossPnl;
-
-    const avgWin = winners.length > 0 ? totalWinPnl / winners.length : 0;
-    const avgLoss = losers.length > 0 ? -totalLossPnl / losers.length : 0;
-    const bestTrade = closed.length > 0 ? Math.max(...closed.map((t) => t.pnl!)) : 0;
-    const worstTrade = closed.length > 0 ? Math.min(...closed.map((t) => t.pnl!)) : 0;
-
-    // Long vs Short
-    const longs = closed.filter((t) => t.direction === "LONG");
-    const shorts = closed.filter((t) => t.direction === "SHORT");
-    const longWR = longs.length > 0 ? (longs.filter((t) => t.pnl! > 0).length / longs.length) * 100 : 0;
-    const shortWR = shorts.length > 0 ? (shorts.filter((t) => t.pnl! > 0).length / shorts.length) * 100 : 0;
-    const longPnl = longs.reduce((s, t) => s + (t.pnl ?? 0), 0);
-    const shortPnl = shorts.reduce((s, t) => s + (t.pnl ?? 0), 0);
-
-    // Sessions
-    const sessions = (["Asia", "London", "New York"] as const).map((sess) => {
-      const st = closed.filter((t) => t.session === sess);
-      const sw = st.filter((t) => t.pnl! > 0);
-      return {
-        session: sess,
-        emoji: sess === "Asia" ? "🌏" : sess === "London" ? "🇬🇧" : "🇺🇸",
-        color: sess === "Asia" ? "border-l-warning" : sess === "London" ? "border-l-info" : "border-l-brand",
-        count: st.length,
-        pnl: st.reduce((s, t) => s + (t.pnl ?? 0), 0),
-        winRate: st.length > 0 ? (sw.length / st.length) * 100 : 0,
-      };
-    });
-
-    // MAE & MFE
-    const withMae = closed.filter((t) => t.mae != null);
-    const withMfe = closed.filter((t) => t.mfe != null);
-    const avgMae = withMae.length > 0 ? withMae.reduce((s, t) => s + Math.abs(t.mae!), 0) / withMae.length : null;
-    const avgMfe = withMfe.length > 0 ? withMfe.reduce((s, t) => s + Math.abs(t.mfe!), 0) / withMfe.length : null;
+  const richStats = useMemo(() => {
+    const winners = closedTrades.filter((t) => (t.pnl ?? 0) > 0);
+    const losers = closedTrades.filter((t) => (t.pnl ?? 0) < 0);
+    const totalProfit = winners.reduce((sum, t) => sum + (t.pnl ?? 0), 0);
+    const totalLoss = Math.abs(losers.reduce((sum, t) => sum + (t.pnl ?? 0), 0));
+    const netPnl = totalProfit - totalLoss;
+    const tradingDays = dayRows.length;
+    const winDays = dayRows.filter((d) => d.pnl > 0);
+    const lossDays = dayRows.filter((d) => d.pnl < 0);
+    const monthRows = Array.from(dayRows.reduce((map, d) => {
+      const key = monthKey(d.date);
+      const row = map.get(key) ?? { key, pnl: 0, trades: 0, wins: 0, losses: 0 };
+      row.pnl += d.pnl;
+      row.trades += d.trades;
+      row.wins += d.wins;
+      row.losses += d.losses;
+      map.set(key, row);
+      return map;
+    }, new Map<string, { key: string; pnl: number; trades: number; wins: number; losses: number }>()).values());
+    const weekRows = Array.from(dayRows.reduce((map, d) => {
+      const key = weekKey(d.date);
+      const row = map.get(key) ?? { key, pnl: 0, trades: 0, wins: 0, losses: 0 };
+      row.pnl += d.pnl;
+      row.trades += d.trades;
+      row.wins += d.wins;
+      row.losses += d.losses;
+      map.set(key, row);
+      return map;
+    }, new Map<string, { key: string; pnl: number; trades: number; wins: number; losses: number }>()).values());
+    const bestDay = dayRows.reduce((best, row) => row.pnl > best.pnl ? row : best, { pnl: 0, trades: 0, wins: 0, losses: 0, volume: 0, date: "-", label: "-", cumulative: 0 });
+    const worstDay = dayRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst, { pnl: 0, trades: 0, wins: 0, losses: 0, volume: 0, date: "-", label: "-", cumulative: 0 });
+    const bestMonth = monthRows.reduce((best, row) => row.pnl > best.pnl ? row : best, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
+    const worstMonth = monthRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
+    const bestWeek = weekRows.reduce((best, row) => row.pnl > best.pnl ? row : best, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
+    const worstWeek = weekRows.reduce((worst, row) => row.pnl < worst.pnl ? row : worst, { key: "-", pnl: 0, trades: 0, wins: 0, losses: 0 });
+    const avgWinDay = winDays.length ? winDays.reduce((sum, d) => sum + d.pnl, 0) / winDays.length : 0;
+    const avgLossDay = lossDays.length ? lossDays.reduce((sum, d) => sum + d.pnl, 0) / lossDays.length : 0;
+    const totalVolume = closedTrades.reduce((sum, t) => sum + Number(t.quantity ?? 0), 0);
+    const avgDailyVolume = tradingDays ? totalVolume / tradingDays : 0;
 
     return {
-      closed: closed.length, winners: winners.length, losers: losers.length,
-      netPnl, totalWinPnl, totalLossPnl, avgWin, avgLoss, bestTrade, worstTrade,
-      winRate: closed.length > 0 ? (winners.length / closed.length) * 100 : 0,
-      profitFactor: totalLossPnl > 0 ? totalWinPnl / totalLossPnl : totalWinPnl > 0 ? 99 : 0,
-      expectedPayoff: closed.length > 0 ? netPnl / closed.length : 0,
-      longs: { count: longs.length, winRate: longWR, pnl: longPnl },
-      shorts: { count: shorts.length, winRate: shortWR, pnl: shortPnl },
-      sessions, avgMae, avgMfe,
-      maeCount: withMae.length, mfeCount: withMfe.length,
+      winners,
+      losers,
+      totalProfit,
+      totalLoss,
+      netPnl,
+      tradingDays,
+      winDays,
+      lossDays,
+      monthRows,
+      weekRows,
+      bestDay,
+      worstDay,
+      bestMonth,
+      worstMonth,
+      bestWeek,
+      worstWeek,
+      avgTradePnl: closedTrades.length ? netPnl / closedTrades.length : 0,
+      avgWin: winners.length ? totalProfit / winners.length : 0,
+      avgLoss: losers.length ? -totalLoss / losers.length : 0,
+      avgWinDay,
+      avgLossDay,
+      avgDailyVolume,
+      totalVolume,
+      openTrades: filteredTrades.filter((t) => t.status === "open").length,
+      profitableDaysPct: tradingDays ? (winDays.length / tradingDays) * 100 : 0,
+      avgTradesPerDay: tradingDays ? closedTrades.length / tradingDays : 0,
+      breakevens: Math.max(0, metrics.closedTrades - winners.length - losers.length),
     };
-  }, [filteredTrades]);
+  }, [closedTrades, dayRows, filteredTrades, metrics.closedTrades]);
 
-  /* ── Hourly Heatmap ── */
-  const hourlyData = useMemo(() => {
-    const hours = Array.from({ length: 24 }, (_, i) => ({ hour: i, total: 0, wins: 0, pnl: 0 }));
-    for (const t of filteredTrades) {
-      if (!t.entry_time || t.status !== "closed" || t.pnl == null) continue;
-      const h = new Date(t.entry_time).getUTCHours();
-      hours[h].total++;
-      if (t.pnl > 0) hours[h].wins++;
-      hours[h].pnl += t.pnl;
-    }
-    return hours.map((h) => ({ ...h, winRate: h.total > 0 ? Math.round((h.wins / h.total) * 100) : 0 }));
-  }, [filteredTrades]);
+  const streaks = useMemo(() => {
+    let maxWin = 0, maxLoss = 0, curWin = 0, curLoss = 0;
+    let maxWinDays = 0, maxLossDays = 0, curWinDays = 0, curLossDays = 0;
+    const winRuns: number[] = [];
+    const lossRuns: number[] = [];
 
-  /* ── Day of Week ── */
-  const dayOfWeekData = useMemo(() => {
-    const days = [
-      { name: "Mon", pnl: 0, count: 0 }, { name: "Tue", pnl: 0, count: 0 },
-      { name: "Wed", pnl: 0, count: 0 }, { name: "Thu", pnl: 0, count: 0 },
-      { name: "Fri", pnl: 0, count: 0 },
-    ];
-    for (const t of filteredTrades) {
-      if (!t.entry_time || t.status !== "closed" || t.pnl == null) continue;
-      const d = new Date(t.entry_time).getUTCDay();
-      if (d >= 1 && d <= 5) { days[d - 1].pnl += t.pnl; days[d - 1].count++; }
+    for (const t of closedTrades.slice().sort((a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime())) {
+      const pnl = t.pnl ?? 0;
+      if (pnl > 0) {
+        curWin += 1;
+        curLoss = 0;
+      } else if (pnl < 0) {
+        if (curWin > 0) winRuns.push(curWin);
+        curLoss += 1;
+        curWin = 0;
+      }
+      maxWin = Math.max(maxWin, curWin);
+      maxLoss = Math.max(maxLoss, curLoss);
     }
-    return days;
-  }, [filteredTrades]);
+    if (curWin > 0) winRuns.push(curWin);
+    if (curLoss > 0) lossRuns.push(curLoss);
+
+    for (const d of dayRows) {
+      if (d.pnl > 0) {
+        curWinDays += 1;
+        curLossDays = 0;
+      } else if (d.pnl < 0) {
+        curLossDays += 1;
+        curWinDays = 0;
+      }
+      maxWinDays = Math.max(maxWinDays, curWinDays);
+      maxLossDays = Math.max(maxLossDays, curLossDays);
+    }
+
+    return {
+      maxWin,
+      maxLoss,
+      avgWin: winRuns.length ? winRuns.reduce((s, v) => s + v, 0) / winRuns.length : 0,
+      avgLoss: lossRuns.length ? lossRuns.reduce((s, v) => s + v, 0) / lossRuns.length : 0,
+      maxWinDays,
+      maxLossDays,
+    };
+  }, [closedTrades, dayRows]);
+
+  const rangeData = useMemo(() => {
+    const profitRanges = [
+      { label: "$0-$50", min: 0, max: 50 },
+      { label: "$51-$200", min: 51, max: 200 },
+      { label: "$201+", min: 201, max: Infinity },
+    ].map((range) => ({
+      label: range.label,
+      count: richStats.winners.filter((t) => (t.pnl ?? 0) >= range.min && (t.pnl ?? 0) <= range.max).length,
+    }));
+    const lossRanges = [
+      { label: "$0-$50", min: 0, max: 50 },
+      { label: "$51-$200", min: 51, max: 200 },
+      { label: "$201+", min: 201, max: Infinity },
+    ].map((range) => ({
+      label: range.label,
+      count: richStats.losers.filter((t) => Math.abs(t.pnl ?? 0) >= range.min && Math.abs(t.pnl ?? 0) <= range.max).length,
+    }));
+    return { profitRanges, lossRanges };
+  }, [richStats.losers, richStats.winners]);
+
+  const yearCalendar = useMemo(() => {
+    const dayMap = new Map(dayRows.map((d) => [d.date, d]));
+    const maxAbs = Math.max(1, ...dayRows.map((d) => Math.abs(d.pnl)));
+    const months = Array.from({ length: 12 }, (_, month) => {
+      const first = new Date(calendarYear, month, 1);
+      const offset = first.getDay() === 0 ? 6 : first.getDay() - 1;
+      const daysInMonth = new Date(calendarYear, month + 1, 0).getDate();
+      const cells: ({ day: number; date: string; data?: DayRow } | null)[] = [];
+      for (let i = 0; i < offset; i++) cells.push(null);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = `${calendarYear}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        cells.push({ day, date, data: dayMap.get(date) });
+      }
+      return { month, label: first.toLocaleDateString("en-US", { month: "short" }), cells };
+    });
+    return { months, maxAbs };
+  }, [calendarYear, dayRows]);
+
+  const activeAccount = accounts.find((a) => a.id === activeAccId);
+
+  useEffect(() => {
+    if (dayRows.length > 0) {
+      setCalendarYear(new Date(`${dayRows[dayRows.length - 1].date}T00:00:00`).getFullYear());
+    }
+  }, [dayRows]);
 
   if (initialLoad) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <Skeleton className="h-14 w-full" />
-        <div className="grid grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)}</div>
-        <Skeleton className="h-80 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28" />)}</div>
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
 
   return (
-    <PageTransition className="space-y-6 relative">
-      {accountSwitching && <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>}
-      {/* ═══ HEADER ═══ */}
+    <PageTransition className="relative space-y-6">
+      {accountSwitching ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/60 backdrop-blur-[1px]">
+          <Loader2 className="h-5 w-5 animate-spin text-brand" />
+        </div>
+      ) : null}
+
       <FadeIn>
-        <div className="glass-subtle rounded-xl border border-border/60 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-brand" />
-            </div>
+        <div className="flex flex-col gap-4 border-b border-border/70 pb-5">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h1 className="font-display text-2xl font-medium tracking-tight">Performance Analytics</h1>
-              <p className="text-xs text-foreground-muted">Quantitative edge analysis, equity curve, Velox calendar &amp; session breakdown.</p>
+              <h1 className="font-display text-3xl font-extrabold tracking-tight">My Stats</h1>
+              <p className="text-xs text-foreground-muted">Account performance, win/loss behavior, and calendar edge.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center rounded-full border border-border bg-surface p-1">
+                {timeframes.map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => setTimeframe(tf)}
+                    className={cn("rounded-full px-3 py-1.5 text-xs font-bold transition", timeframe === tf ? "bg-brand text-brand-foreground" : "text-foreground-muted hover:text-foreground")}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+              <button className="flex h-9 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-semibold text-foreground-muted">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Customize
+              </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {/* View Tab Selector */}
-            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
-              {(["overview", "calendar", "detailed"] as const).map((tab) => (
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex rounded-full border border-border bg-surface p-1">
+              {tabs.map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
                   className={cn(
-                    "px-3 py-1.5 text-xs font-semibold rounded-md transition-all capitalize",
-                    activeTab === tab
-                      ? "bg-brand text-brand-foreground shadow-sm"
-                      : "text-foreground-muted hover:text-foreground"
+                    "rounded-full px-5 py-2 text-xs font-bold transition",
+                    activeTab === tab.key ? "bg-brand text-brand-foreground shadow-sm" : "text-foreground-muted hover:text-foreground",
                   )}
                 >
-                  {tab === "overview" ? "Overview" : tab === "calendar" ? "📅 Velox Calendar" : "Detailed Edge Stats"}
+                  {tab.label}
                 </button>
               ))}
             </div>
-
-            {/* Timeframe Selector */}
-            <div className="flex items-center rounded-lg border border-border bg-surface p-0.5">
-              {(["7D", "30D", "90D", "ALL"] as const).map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf)}
-                  className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-all", timeframe === tf ? "bg-surface-3 text-foreground shadow-sm" : "text-foreground-muted hover:text-foreground")}
-                >
-                  {tf}
+            {activeAccId !== "all" ? (
+              <div className="flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3 py-2 text-xs">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: activeAccount?.color || "var(--brand)" }} />
+                <span className="font-semibold text-foreground">{activeAccount?.name ?? "Selected Account"}</span>
+                <button onClick={() => setActiveAccountIdSynced("all")} className="ml-1 text-foreground-subtle underline hover:text-foreground">
+                  All
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </FadeIn>
 
-      {/* Account Filter Sync Banner */}
-      {activeAccId !== "all" && (
-        (() => {
-          const activeAcc = accounts.find((a) => a.id === activeAccId);
-          return (
-            <div className="flex items-center justify-between p-3 rounded-xl border border-brand/25 bg-brand/10 backdrop-blur-md animate-fade-in text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: activeAcc?.color || "var(--brand)" }} />
-                <span className="font-semibold text-foreground">
-                  Analytics filtered for: <span className="text-brand font-bold">{activeAcc ? activeAcc.name : "Selected Account"}</span>
-                  {activeAcc && ` (${activeAcc.account_type.toUpperCase()} · Initial: ${formatCurrency(activeAcc.initial_balance)})`}
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  setActiveAccountIdSynced("all");
-                }}
-                className="text-[10px] text-foreground-subtle hover:text-foreground underline font-mono"
-              >
-                Reset to All Accounts
-              </button>
-            </div>
-          );
-        })()
+      {activeTab === "overview" ? (
+        <OverviewTab metrics={metrics} stats={richStats} streaks={streaks} closedTrades={closedTrades} dayRows={dayRows} />
+      ) : activeTab === "wins" ? (
+        <WinsTab dayRows={dayRows} stats={richStats} streaks={streaks} rangeData={rangeData} />
+      ) : (
+        <CalendarTab
+          year={calendarYear}
+          setYear={setCalendarYear}
+          stats={richStats}
+          streaks={streaks}
+          yearCalendar={yearCalendar}
+        />
       )}
+    </PageTransition>
+  );
+}
 
-      {/* ═══ TAB: VELOX CALENDAR ═══ */}
-      {activeTab === "calendar" ? (
-        <TradingCalendarWidget trades={filteredTrades} />
-      ) : activeTab === "overview" ? (
-        <>
-          {/* ═══ TAB: OVERVIEW ═══ */}
-          {/* ═══ PRIMARY KPI ROW ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger">
-        {[
-          { label: "Net Realized P&L", value: stats.netPnl, fmt: true, sub: `From ${stats.closed} closed trades`, icon: DollarSign },
-          { label: "Win Rate", value: stats.winRate, fmt: false, pct: true, sub: `${stats.winners}W / ${stats.losers}L`, icon: Target, brandColor: true },
-          { label: "Profit Factor", value: stats.profitFactor, fmt: false, sub: stats.profitFactor > 1.5 ? "✓ Healthy Edge" : "Needs Improvement", icon: Shield, emerald: true },
-          { label: "Expected Payoff", value: stats.expectedPayoff, fmt: true, sub: "Average per trade", icon: Zap },
-        ].map((kpi) => (
-          <Card key={kpi.label} className="card-hover">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-md bg-surface-2 flex items-center justify-center">
-                  <kpi.icon className="w-3.5 h-3.5 text-foreground-subtle" />
-                </div>
-                <span className="text-[10px] text-foreground-subtle uppercase tracking-wider font-bold">{kpi.label}</span>
-              </div>
-              <p className={cn(
-                "text-2xl font-extrabold font-mono tabular",
-                kpi.brandColor ? "text-brand" : kpi.emerald ? "text-emerald-400" : kpi.value >= 0 ? "text-profit" : "text-loss",
-              )}>
-                {kpi.fmt ? (
-                  <AnimatedCounter value={kpi.value} format="currency" signed />
-                ) : kpi.pct ? (
-                  <AnimatedCounter value={kpi.value / 100} format="percent" decimals={1} />
-                ) : (
-                  <AnimatedCounter value={kpi.value} format="decimal" decimals={2} />
-                )}
-              </p>
-              <p className={cn("text-[10px] mt-1", typeof kpi.sub === "string" && kpi.sub.startsWith("✓") ? "text-profit" : "text-foreground-muted")}>{kpi.sub}</p>
-            </CardContent>
-          </Card>
-        ))}
+function OverviewTab({ metrics, stats, streaks, closedTrades, dayRows }: { metrics: ReturnType<typeof calculateMetrics>; stats: any; streaks: any; closedTrades: Trade[]; dayRows: DayRow[] }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
+        <StatCard label="Net P&L" value={formatCurrency(stats.netPnl)} sub={`${metrics.closedTrades} trades`} tone={stats.netPnl >= 0 ? "profit" : "loss"} />
+        <StatCard label="Avg Daily P&L" value={formatCurrency(stats.tradingDays ? stats.netPnl / stats.tradingDays : 0)} sub={`${stats.tradingDays} trading days`} tone={stats.netPnl >= 0 ? "profit" : "loss"} />
+        <StatCard label="Profit Factor" value={metrics.profitFactor.toFixed(2)} sub={`${formatCurrency(stats.totalProfit)} / ${formatCurrency(stats.totalLoss)}`} tone="brand" />
+        <StatCard label="Win Rate" value={pct(metrics.winRate * 100)} sub={`${stats.winners.length}W / ${stats.losers.length}L`} tone="brand" />
+        <StatCard label="Trading Days" value={stats.tradingDays} sub={`${stats.winDays.length}W / ${stats.lossDays.length}L`} tone="brand" />
+        <StatCard label="Total Trades" value={metrics.totalTrades} sub={`${stats.winners.length}W / ${stats.breakevens}B / ${stats.losers.length}L`} tone="neutral" />
       </div>
 
-      {/* ═══ SECONDARY KPI ROW ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {[
-          { label: "Avg Win", value: stats.avgWin, color: "text-profit" },
-          { label: "Avg Loss", value: stats.avgLoss, color: "text-loss" },
-          { label: "Best Trade", value: stats.bestTrade, color: "text-profit" },
-          { label: "Worst Trade", value: stats.worstTrade, color: "text-loss" },
-          { label: "Max Drawdown", value: -drawdown.maxDrawdown, color: "text-loss" },
-          { label: "Avg Hold", value: metrics.avgHoldMinutes, color: "text-brand", minutes: true },
-        ].map((kpi) => (
-          <Card key={kpi.label} className="card-hover">
-            <CardContent className="p-3.5">
-              <span className="text-[10px] text-foreground-subtle uppercase tracking-wider font-bold">{kpi.label}</span>
-              <p className={cn("text-lg font-bold font-mono tabular mt-0.5", kpi.color)}>
-                {"minutes" in kpi && kpi.minutes
-                  ? `${Math.round(kpi.value)}m`
-                  : <AnimatedCounter value={kpi.value} format="currency" signed />}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card className="card-hover">
+          <CardHeader><CardTitle className="text-base">P&L Statistics</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <MiniMetric label="Avg Trade P&L" value={formatCurrency(stats.avgTradePnl)} tone={stats.avgTradePnl >= 0 ? "profit" : "loss"} />
+            <MiniMetric label="Trade Expectancy" value={formatCurrency(metrics.expectancy)} tone={metrics.expectancy >= 0 ? "profit" : "loss"} />
+            <MiniMetric label="Avg. Winning Trade" value={formatCurrency(stats.avgWin)} tone="profit" />
+            <MiniMetric label="Avg. Losing Trade" value={formatCurrency(stats.avgLoss)} tone="loss" />
+            <MiniMetric label="Avg Winning Day P&L" value={formatCurrency(stats.avgWinDay)} tone="profit" />
+            <MiniMetric label="Avg Losing Day P&L" value={formatCurrency(stats.avgLossDay)} tone="loss" />
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader><CardTitle className="text-base">Performance Extremes</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <MiniMetric label="Largest Profit" value={formatCurrency(metrics.bestTrade)} tone="profit" />
+            <MiniMetric label="Largest Loss" value={formatCurrency(metrics.worstTrade)} tone="loss" />
+            <MiniMetric label="Best Day Profit" value={formatCurrency(stats.bestDay.pnl)} tone="profit" />
+            <MiniMetric label="Worst Day Loss" value={formatCurrency(stats.worstDay.pnl)} tone="loss" />
+            <MiniMetric label={`Best Month ${stats.bestMonth.key !== "-" ? `(${stats.bestMonth.key})` : ""}`} value={formatCurrency(stats.bestMonth.pnl)} tone="profit" />
+            <MiniMetric label={`Worst Month ${stats.worstMonth.key !== "-" ? `(${stats.worstMonth.key})` : ""}`} value={formatCurrency(stats.worstMonth.pnl)} tone="loss" />
+            <MiniMetric label="Total Profit" value={formatCurrency(stats.totalProfit)} tone="profit" />
+            <MiniMetric label="Total Loss" value={formatCurrency(-stats.totalLoss)} tone="loss" />
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ═══ EQUITY CURVE (hero) ═══ */}
-      <Card className="card-hover border-brand/15 relative overflow-hidden">
-        <div className="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
-        <CardHeader className="pb-2 relative">
-          <CardTitle className="text-sm flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-brand" />
-              Cumulative Equity Curve
-            </span>
-            <div className="flex items-center gap-1.5">
-              {ddDetails.maxDrawdownPct > 0 && (
-                <Badge variant="loss" className="text-[10px]">
-                  Max DD {(ddDetails.maxDrawdownPct * 100).toFixed(1)}%
-                </Badge>
-              )}
-              {ddDetails.recovered && ddDetails.recoveryTimeDays != null ? (
-                <Badge variant="profit" className="text-[10px]">
-                  Recovered in {ddDetails.recoveryTimeDays}d
-                </Badge>
-              ) : ddDetails.maxDrawdown > 0 ? (
-                <Badge variant="warning" className="text-[10px]">Not yet recovered</Badge>
-              ) : null}
-              <Badge variant="brand" className="text-[10px]">{equityCurve.length} trades</Badge>
-            </div>
-          </CardTitle>
-          <CardDescription>
-            Drag the brush below to zoom. Drawdown lasted{" "}
-            <span className="text-foreground font-medium">{ddDetails.maxDrawdownDurationDays}d</span>{" "}
-            across <span className="text-foreground font-medium">{ddDetails.maxDrawdownDurationTrades}</span> trades.
-          </CardDescription>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Card className="card-hover">
+          <CardHeader><CardTitle className="text-base">Streaks & Patterns</CardTitle></CardHeader>
+          <CardContent>
+            <MiniMetric label="Max Win Streak (trades)" value={streaks.maxWin} tone="profit" />
+            <MiniMetric label="Max Loss Streak (trades)" value={streaks.maxLoss} tone="loss" />
+            <MiniMetric label="Avg Win Streak (trades)" value={streaks.avgWin.toFixed(2)} tone="neutral" />
+            <MiniMetric label="Avg Loss Streak (trades)" value={streaks.avgLoss.toFixed(2)} tone="neutral" />
+            <MiniMetric label="Max Winning Days" value={streaks.maxWinDays} tone="profit" />
+            <MiniMetric label="Max Losing Days" value={streaks.maxLossDays} tone="loss" />
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardHeader><CardTitle className="text-base">Trading Activity</CardTitle></CardHeader>
+          <CardContent>
+            <MiniMetric label="Total Trades" value={metrics.totalTrades} />
+            <MiniMetric label="Open Trades" value={stats.openTrades} />
+            <MiniMetric label="Total Trading Days" value={stats.tradingDays} />
+            <MiniMetric label="Avg Daily Volume" value={stats.avgDailyVolume.toFixed(2)} />
+            <MiniMetric label="Total Volume" value={stats.totalVolume.toFixed(2)} />
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardHeader><CardTitle className="text-base">Costs & Fees</CardTitle></CardHeader>
+          <CardContent>
+            <MiniMetric label="Total Commissions" value={formatCurrency(0)} tone="loss" />
+            <MiniMetric label="Total Swap" value={formatCurrency(0)} tone="brand" />
+            <MiniMetric label="Total Costs" value={formatCurrency(0)} tone="loss" />
+          </CardContent>
+        </Card>
+      </div>
+
+      <OverviewSuite trades={closedTrades} dayRows={dayRows} />
+    </div>
+  );
+}
+
+type Breakdown = { label: string; trades: number; pnl: number; wins: number; losses: number; profit: number; loss: number };
+
+function groupTrades(trades: Trade[], labelFor: (trade: Trade) => string) {
+  const groups = new Map<string, Breakdown>();
+  for (const trade of trades) {
+    const label = labelFor(trade);
+    const group = groups.get(label) ?? { label, trades: 0, pnl: 0, wins: 0, losses: 0, profit: 0, loss: 0 };
+    const pnl = trade.pnl ?? 0;
+    group.trades += 1;
+    group.pnl += pnl;
+    if (pnl > 0) { group.wins += 1; group.profit += pnl; }
+    if (pnl < 0) { group.losses += 1; group.loss += Math.abs(pnl); }
+    groups.set(label, group);
+  }
+  return Array.from(groups.values());
+}
+
+function holdBucket(trade: Trade) {
+  if (!trade.exit_time) return "Open";
+  const mins = Math.max(0, (new Date(trade.exit_time).getTime() - new Date(trade.entry_time).getTime()) / 60000);
+  return mins < 1 ? "Under 1 min" : mins < 10 ? "1 min to 10 mins" : mins < 60 ? "10 mins to 1h" : mins < 240 ? "1h to 4h" : "4h to 24h";
+}
+
+function rBucket(trade: Trade) {
+  const r = trade.r_multiple;
+  if (r == null) return "No R data";
+  return r <= -4 ? "-4R or less" : r < 0 ? "-4R to 0R" : r < 1 ? "0R to 0.99R" : r < 4 ? "1R to 3.99R" : "+4R and more";
+}
+
+function OverviewSuite({ trades, dayRows }: { trades: Trade[]; dayRows: DayRow[] }) {
+  const weekday = groupTrades(trades, (t) => new Date(t.exit_time ?? t.entry_time).toLocaleDateString("en-US", { weekday: "long" }));
+  const week = groupTrades(trades, (t) => weekKey(tradeDate(t)));
+  const month = groupTrades(trades, (t) => new Date(`${tradeDate(t)}T00:00:00`).toLocaleDateString("en-US", { month: "long" }));
+  const hour = groupTrades(trades, (t) => `${String(new Date(t.entry_time).getUTCHours()).padStart(2, "0")}:00`);
+  const duration = groupTrades(trades, holdBucket);
+  const symbols = groupTrades(trades, (t) => t.symbol || "Unknown").sort((a, b) => b.trades - a.trades).slice(0, 10);
+  const rMultiples = groupTrades(trades, rBucket);
+  const sessions = groupTrades(trades, (t) => t.session || "Outside of Sessions");
+  const pairs = groupTrades(trades, (t) => t.symbol || "Unknown");
+  const weekdayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const orderedWeekday = weekdayOrder.map((label) => weekday.find((row) => row.label === label) ?? { label, trades: 0, pnl: 0, wins: 0, losses: 0, profit: 0, loss: 0 });
+  const equity = dayRows.map((day) => ({ ...day, equity: day.cumulative }));
+
+  return <div className="space-y-6">
+    <DistributionPanel title="Pair Daily Distribution" data={orderedWeekday} mode="pnl" wide />
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <DistributionPanel title="Weekly Trade Distribution" subtitle="Performance breakdown by weekday" data={orderedWeekday} mode="wins-losses" />
+      <EquityPanel data={equity} />
+      <DistributionPanel title="Trade Distribution by Week" data={orderedWeekday} mode="trades" horizontal />
+      <DistributionPanel title="Performance by Week" data={orderedWeekday} mode="pnl" horizontal />
+      <DistributionPanel title="Trade Distribution (calendar weeks)" data={week} mode="trades" horizontal />
+      <DistributionPanel title="Performance by calendar week" data={week} mode="pnl" horizontal />
+      <DistributionPanel title="Trade Distribution by Month" data={month} mode="trades" horizontal />
+      <DistributionPanel title="Performance by Month" data={month} mode="pnl" horizontal />
+      <DistributionPanel title="Trade Distribution by Hour (UTC)" data={hour} mode="trades" horizontal />
+      <DistributionPanel title="Performance by Hour (UTC)" data={hour} mode="pnl" horizontal />
+      <DistributionPanel title="Trade Distribution by Intraday Duration" data={duration} mode="trades" horizontal />
+      <DistributionPanel title="Performance by Intraday Duration" data={duration} mode="pnl" horizontal />
+      <DistributionPanel title="Top 10 Symbol" data={symbols} mode="trades" horizontal />
+      <DistributionPanel title="Performance by Symbol" data={symbols} mode="pnl" horizontal />
+      <DistributionPanel title="Trade Distribution by R Multiple" data={rMultiples} mode="trades" horizontal />
+      <DistributionPanel title="Performance by R Multiple" data={rMultiples} mode="pnl" horizontal />
+    </div>
+    <SummaryPanel title="Summary Week" rows={orderedWeekday} firstColumn="Day" />
+    <SummaryPanel title="Summary Pairs" rows={pairs} firstColumn="Pair" />
+    <SummaryPanel title="Summary Session" rows={sessions} firstColumn="Session" />
+  </div>;
+}
+
+function DistributionPanel({ title, subtitle, data, mode, horizontal = false, wide = false }: { title: string; subtitle?: string; data: Breakdown[]; mode: "trades" | "pnl" | "wins-losses"; horizontal?: boolean; wide?: boolean }) {
+  const chartData = data.map((row) => ({ ...row, positive: Math.max(0, row.pnl), negative: Math.min(0, row.pnl) }));
+  const value = mode === "trades" ? "trades" : mode === "wins-losses" ? "wins" : "pnl";
+  return <Card className={cn("card-hover", wide && "w-full")}><CardHeader className="flex-row items-start justify-between"><div><CardTitle className="text-base">{title}</CardTitle>{subtitle ? <CardDescription>{subtitle}</CardDescription> : null}</div><Badge variant="outline">Options</Badge></CardHeader><CardContent className="h-72"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} layout={horizontal ? "vertical" : "horizontal"} margin={{ left: horizontal ? 18 : 0 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} horizontal={!horizontal} vertical={horizontal} />{horizontal ? <><XAxis type="number" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => mode === "pnl" ? `$${v}` : String(v)} /><YAxis type="category" width={105} dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} /></> : <><XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} /><YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} /></>}<Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: 8 }} formatter={(v) => [mode === "pnl" ? formatCurrency(Number(v)) : v, mode === "pnl" ? "Net P&L" : mode === "trades" ? "Trades" : "Wins"]} />{mode === "pnl" ? <><ReferenceLine x={horizontal ? 0 : undefined} y={horizontal ? undefined : 0} stroke="var(--foreground-subtle)" /><Bar dataKey="positive" fill="#34d399" radius={[3, 3, 3, 3]} /><Bar dataKey="negative" fill="#fb7185" radius={[3, 3, 3, 3]} /></> : mode === "wins-losses" ? <><Bar dataKey="wins" fill="#34d399" radius={[4, 4, 0, 0]} /><Bar dataKey="losses" fill="#fb7185" radius={[4, 4, 0, 0]} /></> : <Bar dataKey={value} fill="var(--brand)" radius={[4, 4, 4, 4]} />}</BarChart></ResponsiveContainer></CardContent></Card>;
+}
+
+function EquityPanel({ data }: { data: (DayRow & { equity: number })[] }) { return <Card className="card-hover"><CardHeader className="flex-row items-start justify-between"><CardTitle className="text-base">Equity Line</CardTitle><Badge variant="brand">All</Badge></CardHeader><CardContent className="h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={data}><CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} /><XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} /><YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} /><Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: 8 }} formatter={(v) => [formatCurrency(Number(v)), "Equity"]} /><Area type="monotone" dataKey="equity" stroke="var(--brand)" fill="var(--brand)" fillOpacity={0.22} strokeWidth={2.5} /></AreaChart></ResponsiveContainer></CardContent></Card>; }
+
+function SummaryPanel({ title, rows, firstColumn }: { title: string; rows: Breakdown[]; firstColumn: string }) { const best = rows.reduce((bestRow, row) => row.pnl > bestRow.pnl ? row : bestRow, rows[0] ?? { pnl: 0 }); const worst = rows.reduce((worstRow, row) => row.pnl < worstRow.pnl ? row : worstRow, rows[0] ?? { pnl: 0 }); return <Card className="card-hover"><CardHeader><CardTitle className="text-base">{title}</CardTitle></CardHeader><CardContent className="overflow-x-auto"><table className="w-full min-w-[680px] text-xs"><thead className="text-left text-foreground-muted"><tr><th className="pb-3">{firstColumn}</th><th className="pb-3 text-right">Net P&L</th><th className="pb-3 text-right">Winning %</th><th className="pb-3 text-right">Total Profit</th><th className="pb-3 text-right">Total Loss</th><th className="pb-3 text-right">Total Trades</th></tr></thead><tbody>{rows.map((row) => <tr key={row.label} className="border-t border-border/70"><td className="py-3 font-semibold">{row.label} {row === best ? <Badge variant="profit">Best</Badge> : row === worst ? <Badge variant="loss">Worst</Badge> : null}</td><td className={cn("py-3 text-right font-mono font-bold", row.pnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(row.pnl)}</td><td className="py-3 text-right">{pct(row.trades ? row.wins / row.trades * 100 : 0)}</td><td className="py-3 text-right text-profit">{formatCurrency(row.profit)}</td><td className="py-3 text-right text-loss">{formatCurrency(-row.loss)}</td><td className="py-3 text-right font-mono">{row.trades}</td></tr>)}</tbody></table></CardContent></Card>; }
+
+function WinsTab({ dayRows, stats, streaks, rangeData }: { dayRows: DayRow[]; stats: any; streaks: any; rangeData: any }) {
+  return (
+    <div className="space-y-6">
+      <Card className="card-hover">
+        <CardHeader className="flex-row items-start justify-between">
+          <div>
+            <CardTitle className="text-base">Daily Net Cumulative P&L</CardTitle>
+            <CardDescription>Current {formatCurrency(stats.netPnl)} · Peak {formatCurrency(Math.max(0, ...dayRows.map((d) => d.cumulative)))} · Trough {formatCurrency(Math.min(0, ...dayRows.map((d) => d.cumulative)))}</CardDescription>
+          </div>
+          <Badge variant="brand">All</Badge>
         </CardHeader>
-        <CardContent className={cn("pt-2 relative", equityCurve.length > 1 ? "h-80" : "h-72")}>
-          {equityCurve.length === 0 ? (
-            <EmptyState
-              icon={TrendingUp}
-              title="No equity curve yet"
-              description="Close your first trade to start building your equity curve."
-              action={{ label: "Log a trade", href: "/dashboard/journal" }}
-            />
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={equityCurve}>
-                <defs>
-                  <linearGradient id="anaEqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.35} />
-                    <stop offset="60%" stopColor="var(--brand)" stopOpacity={0.08} />
-                    <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
-                <XAxis dataKey="date" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} width={56} />
-                <Tooltip
-                  cursor={{ stroke: "var(--brand)", strokeWidth: 1, strokeDasharray: "4 4" }}
-                  content={<ChartTooltip
-                    labelFormatter={(l) => `Trade ${l}`}
-                    formatter={(val) => [formatCurrency(Number(val)), "Cumulative P&L"]}
-                    colorBySign
-                  />}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="equity"
-                  stroke="var(--brand)"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#anaEqGrad)"
-                  dot={false}
-                  activeDot={{ r: 5, fill: "var(--brand)", stroke: "var(--surface)", strokeWidth: 2 }}
-                />
-                {equityCurve.length > 1 && (
-                  <Brush
-                    dataKey="date"
-                    height={24}
-                    stroke="var(--brand)"
-                    fill="var(--surface-2)"
-                    travellerWidth={10}
-                    tickFormatter={() => ""}
-                  />
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
+        <CardContent className="h-[360px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={dayRows}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.45} />
+              <XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--foreground-subtle)" fontSize={11} tickFormatter={(v) => `$${v}`} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: 8 }} formatter={(v, n) => [formatCurrency(Number(v)), n === "cumulative" ? "Cumulative" : "Daily P&L"]} />
+              <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                {dayRows.map((d) => <Cell key={d.date} fill={d.pnl >= 0 ? "#34d399" : "#fb7185"} fillOpacity={0.28} />)}
+              </Bar>
+              <Line dataKey="cumulative" type="monotone" stroke="var(--brand)" strokeWidth={3} dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* ═══ WIN/LOSS STREAK TRACKER ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-7 card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Flame className="w-4 h-4 text-brand" />
-              Win / Loss Streak Tracker
-            </CardTitle>
-            <CardDescription>Chronological streak runs. Green = winning streak, red = losing streak.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {streakHistory.length === 0 ? (
-              <EmptyState
-                icon={Flame}
-                title="No streaks yet"
-                description="Close trades to start tracking your win/loss streak runs."
-                size="sm"
-              />
-            ) : (
-              <>
-                {/* Streak run bars */}
-                <div className="flex items-end gap-1 h-24 mb-3">
-                  {streakHistory.slice(-24).map((run, i) => {
-                    const maxLen = Math.max(...streakHistory.slice(-24).map((r) => r.length), 1);
-                    const heightPct = (run.length / maxLen) * 100;
+      <Card className="card-hover">
+        <CardHeader><CardTitle className="text-base">Net Daily P&L</CardTitle></CardHeader>
+        <CardContent className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={dayRows}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.45} />
+              <XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--foreground-subtle)" fontSize={11} tickFormatter={(v) => `$${v}`} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: 8 }} formatter={(v) => [formatCurrency(Number(v)), "Net P&L"]} />
+              <Bar dataKey="pnl" radius={[5, 5, 0, 0]}>
+                {dayRows.map((d) => <Cell key={d.date} fill={d.pnl >= 0 ? "#34d399" : "#fb7185"} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <PerformancePanel title="Win Performance" tone="profit" data={dayRows.filter((d) => d.pnl > 0)} stats={[
+          ["Total P&L", formatCurrency(stats.totalProfit)],
+          ["Winning Trades", stats.winners.length],
+          ["Avg Daily Volume", stats.avgDailyVolume.toFixed(2)],
+          ["Avg. Winning Trade", formatCurrency(stats.avgWin)],
+          ["Total Commissions", formatCurrency(0)],
+          ["Max Consecutive Wins", streaks.maxWin],
+        ]} />
+        <PerformancePanel title="Loss Performance" tone="loss" data={dayRows.filter((d) => d.pnl < 0).map((d) => ({ ...d, pnl: d.pnl }))} stats={[
+          ["Total P&L", formatCurrency(-stats.totalLoss)],
+          ["Losing Trades", stats.losers.length],
+          ["Avg Daily Volume", stats.avgDailyVolume.toFixed(2)],
+          ["Avg. Losing Trade", formatCurrency(stats.avgLoss)],
+          ["Total Commissions", formatCurrency(0)],
+          ["Max Consecutive Loss", streaks.maxLoss],
+        ]} />
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <RangePanel title="Performance by Profit Range" data={rangeData.profitRanges} color="#34d399" />
+        <RangePanel title="Performance by Loss Range" data={rangeData.lossRanges} color="#fb7185" />
+      </div>
+    </div>
+  );
+}
+
+function PerformancePanel({ title, tone, data, stats }: { title: string; tone: "profit" | "loss"; data: DayRow[]; stats: [string, React.ReactNode][] }) {
+  return (
+    <Card className="card-hover">
+      <CardHeader className="flex-row items-start justify-between">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Badge variant={tone}>{tone === "profit" ? "Wins" : "Losses"}</Badge>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="h-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data}>
+              <XAxis dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickFormatter={(v) => `$${v}`} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: 8 }} formatter={(v) => [formatCurrency(Number(v)), "P&L"]} />
+              <Line dataKey="pnl" type="monotone" stroke={tone === "profit" ? "#34d399" : "#fb7185"} strokeWidth={2.5} dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded-lg border border-border bg-surface-2/35 p-3">
+              <p className="text-xs text-foreground-muted">{label}</p>
+              <p className="mt-1 font-mono text-sm font-bold text-foreground">{value}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RangePanel({ title, data, color }: { title: string; data: { label: string; count: number }[]; color: string }) {
+  return (
+    <Card className="card-hover">
+      <CardHeader className="flex-row items-start justify-between">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <Badge variant="outline">Options</Badge>
+      </CardHeader>
+      <CardContent className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.45} horizontal={false} />
+            <XAxis type="number" stroke="var(--foreground-subtle)" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="label" stroke="var(--foreground-subtle)" fontSize={11} tickLine={false} axisLine={false} width={82} />
+            <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: 8 }} />
+            <Bar dataKey="count" fill={color} radius={[0, 5, 5, 0]} barSize={14} />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CalendarTab({ year, setYear, stats, streaks, yearCalendar }: { year: number; setYear: (year: number) => void; stats: any; streaks: any; yearCalendar: any }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard label="Best Month" value={formatCurrency(stats.bestMonth.pnl)} sub={`${stats.bestMonth.trades} trades · ${pct(stats.bestMonth.trades ? (stats.bestMonth.wins / stats.bestMonth.trades) * 100 : 0)} win`} tone="profit" />
+        <StatCard label="Worst Month" value={formatCurrency(stats.worstMonth.pnl)} sub={`${stats.worstMonth.trades} trades · ${pct(stats.worstMonth.trades ? (stats.worstMonth.wins / stats.worstMonth.trades) * 100 : 0)} win`} tone="loss" />
+        <StatCard label="Best Week" value={formatCurrency(stats.bestWeek.pnl)} sub={`${stats.bestWeek.trades} trades · ${pct(stats.bestWeek.trades ? (stats.bestWeek.wins / stats.bestWeek.trades) * 100 : 0)} win`} tone="profit" />
+        <StatCard label="Worst Week" value={formatCurrency(stats.worstWeek.pnl)} sub={`${stats.worstWeek.trades} trades · ${pct(stats.worstWeek.trades ? (stats.worstWeek.wins / stats.worstWeek.trades) * 100 : 0)} win`} tone="loss" />
+        <StatCard label="Win Streak" value={`${streaks.maxWinDays} days`} sub="Longest consecutive winning days" tone="profit" />
+        <StatCard label="Loss Streak" value={`${streaks.maxLossDays} days`} sub="Longest consecutive losing days" tone="loss" />
+        <StatCard label="Profitable Days" value={pct(stats.profitableDaysPct)} sub={`${stats.winDays.length} of ${stats.tradingDays} days`} tone="brand" />
+        <StatCard label="Avg Trades/Day" value={stats.avgTradesPerDay.toFixed(1)} sub={`${stats.tradingDays} trading days`} tone="neutral" />
+      </div>
+
+      <Card className="card-hover">
+        <CardHeader className="flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Year at a Glance</CardTitle>
+            <CardDescription>Daily P&L heatmap using your selected account and timeframe.</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">$</Badge>
+            <button onClick={() => setYear(year - 1)} className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="w-12 text-center text-sm font-bold">{year}</span>
+            <button onClick={() => setYear(year + 1)} className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-4">
+            {yearCalendar.months.map((month: any) => (
+              <div key={month.month} className="rounded-lg bg-surface/45 p-3">
+                <p className="mb-2 text-xs font-bold text-foreground-muted">{month.label}</p>
+                <div className="grid grid-cols-7 gap-1 pb-1">
+                  {["M", "T", "W", "T", "F", "S", "S"].map((d, index) => <span key={`${d}-${index}`} className="text-center text-[9px] text-foreground-subtle">{d}</span>)}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {month.cells.map((cell: any, index: number) => {
+                    const pnl = cell?.data?.pnl ?? 0;
+                    const intensity = Math.min(1, Math.abs(pnl) / yearCalendar.maxAbs);
+                    const style = cell?.data ? {
+                      backgroundColor: pnl >= 0 ? `rgba(52, 211, 153, ${0.16 + intensity * 0.58})` : `rgba(251, 113, 133, ${0.16 + intensity * 0.58})`,
+                      borderColor: pnl >= 0 ? "rgba(52, 211, 153, 0.55)" : "rgba(251, 113, 133, 0.55)",
+                    } : undefined;
                     return (
                       <div
-                        key={i}
-                        className="flex-1 min-w-[6px] rounded-t-sm transition-all hover:opacity-80 cursor-default group relative"
-                        style={{
-                          height: `${heightPct}%`,
-                          backgroundColor: run.type === "win" ? "#34d399" : run.type === "loss" ? "#fb7185" : "#52525b",
-                          opacity: 0.45 + 0.55 * (i / Math.max(1, Math.min(24, streakHistory.length))),
-                        }}
-                        title={`${run.type === "win" ? "Win" : run.type === "loss" ? "Loss" : "BE"} streak of ${run.length} · ${formatCurrency(run.pnl, { sign: true })}`}
-                      />
+                        key={cell?.date ?? `blank-${index}`}
+                        style={style}
+                        title={cell?.data ? `${cell.date} · ${formatCurrency(pnl, { sign: true })} · ${cell.data.trades} trades` : undefined}
+                        className={cn("flex aspect-square items-center justify-center rounded border text-[9px] font-mono", cell ? "border-border/40 bg-surface-2/40 text-foreground-subtle" : "border-transparent", cell?.data && (pnl >= 0 ? "text-profit" : "text-loss"))}
+                      >
+                        {cell?.day ?? ""}
+                      </div>
                     );
                   })}
                 </div>
-                {/* Summary stats */}
-                <div className="grid grid-cols-4 gap-3 pt-3 border-t border-border">
-                  <div>
-                    <p className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Longest Win</p>
-                    <p className="text-lg font-bold font-mono tabular text-profit">
-                      {Math.max(0, ...streakHistory.filter((r) => r.type === "win").map((r) => r.length))}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Longest Loss</p>
-                    <p className="text-lg font-bold font-mono tabular text-loss">
-                      {Math.max(0, ...streakHistory.filter((r) => r.type === "loss").map((r) => r.length))}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Current</p>
-                    <p className={cn(
-                      "text-lg font-bold font-mono tabular",
-                      streakHistory[streakHistory.length - 1]?.type === "win"
-                        ? "text-profit"
-                        : streakHistory[streakHistory.length - 1]?.type === "loss"
-                        ? "text-loss"
-                        : "text-foreground",
-                    )}>
-                      {streakHistory[streakHistory.length - 1]?.length ?? 0}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-foreground-subtle uppercase tracking-wider font-bold">Total Runs</p>
-                    <p className="text-lg font-bold font-mono tabular text-brand">
-                      <AnimatedCounter value={streakHistory.length} />
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Drawdown recovery details */}
-        <Card className="lg:col-span-5 card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-loss" />
-              Drawdown &amp; Recovery
-            </CardTitle>
-            <CardDescription>Peak-to-trough decline and time to recover.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-subtle">Max Drawdown</span>
-              <span className="text-xl font-bold font-mono tabular text-loss">
-                -<AnimatedCounter value={ddDetails.maxDrawdown} format="currency" />
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-subtle">Max Drawdown %</span>
-              <span className="text-sm font-bold font-mono tabular text-loss">
-                <AnimatedCounter value={ddDetails.maxDrawdownPct} format="percent" />
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-subtle">Duration</span>
-              <span className="text-sm font-bold font-mono tabular text-foreground">
-                {ddDetails.maxDrawdownDurationDays}d · {ddDetails.maxDrawdownDurationTrades} trades
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-foreground-subtle">Recovery Time</span>
-              {ddDetails.recovered ? (
-                <Badge variant="profit" className="text-[10px]">{ddDetails.recoveryTimeDays}d to recover</Badge>
-              ) : ddDetails.maxDrawdown > 0 ? (
-                <Badge variant="warning" className="text-[10px]">Still in drawdown</Badge>
-              ) : (
-                <span className="text-sm text-foreground-subtle">—</span>
-              )}
-            </div>
-            {ddDetails.troughDate && (
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <span className="text-[10px] text-foreground-subtle">Trough</span>
-                <span className="text-[10px] font-mono text-foreground-muted">{ddDetails.troughDate}</span>
               </div>
-            )}
-            {ddDetails.recoveryDate && (
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-foreground-subtle">Recovered</span>
-                <span className="text-[10px] font-mono text-foreground-muted">{ddDetails.recoveryDate}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-        </>
-      ) : (
-        <>
-          {/* ═══ TAB: DETAILED EDGE STATS ═══ */}
-          {/* ═══ HOURLY EXECUTION HEATMAP ═══ */}
-      <Card className="card-hover">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Clock className="w-4 h-4 text-brand" />
-            Hourly Execution Heatmap (00:00 – 23:00 UTC)
-          </CardTitle>
-          <CardDescription>Win rate % by trading hour. Find your peak performance windows.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-8 md:grid-cols-12 lg:grid-cols-24 gap-1">
-            {hourlyData.map((h) => {
-              const bg =
-                h.total === 0
-                  ? "bg-surface-2/30 border-border/30 text-foreground-subtle/50"
-                  : h.winRate >= 70
-                  ? "bg-profit/20 border-profit/40 text-profit"
-                  : h.winRate >= 50
-                  ? "bg-brand/15 border-brand/30 text-brand"
-                  : "bg-loss/15 border-loss/30 text-loss";
-
-              return (
-                <div
-                  key={h.hour}
-                  className={cn("h-16 rounded-md border p-1 text-center flex flex-col justify-between font-mono transition-all hover:scale-105 cursor-default", bg)}
-                  title={`${String(h.hour).padStart(2, "0")}:00 UTC · ${h.wins}/${h.total} Wins (${h.winRate}%) · P&L: $${h.pnl.toFixed(0)}`}
-                >
-                  <span className="text-[8px] opacity-60">{String(h.hour).padStart(2, "0")}h</span>
-                  <span className="text-[10px] font-bold">{h.total > 0 ? `${h.winRate}%` : "—"}</span>
-                  <span className="text-[7px] opacity-50">{h.total > 0 ? `${h.total}t` : ""}</span>
-                </div>
-              );
-            })}
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* ═══ DAY OF WEEK + LONG VS SHORT ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Day of Week */}
-        <Card className="lg:col-span-7 card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-brand" />
-              Day of Week Performance
-            </CardTitle>
-            <CardDescription>Net P&amp;L by trading day (Mon–Fri).</CardDescription>
-          </CardHeader>
-          <CardContent className="h-56 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dayOfWeekData} barCategoryGap="30%">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
-                <XAxis dataKey="name" stroke="var(--foreground-subtle)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                <Tooltip
-                  cursor={{ fill: "var(--surface-2)", radius: 4 }}
-                  content={<ChartTooltip
-                    labelFormatter={(l) => String(l)}
-                    formatter={(val) => [formatCurrency(Number(val)), "Net P&L"]}
-                    colorBySign
-                  />}
-                />
-                <Bar dataKey="pnl" radius={[6, 6, 2, 2]}>
-                  {dayOfWeekData.map((entry, index) => (
-                    <Cell key={`dow-${index}`} fill={entry.pnl >= 0 ? "#34d399" : "#fb7185"} fillOpacity={0.9} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Long vs Short */}
-        <Card className="lg:col-span-5 card-hover">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Activity className="w-4 h-4 text-brand" />
-              Long vs Short Split
-            </CardTitle>
-            <CardDescription>Direction bias and performance comparison.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {/* Long */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-profit flex items-center gap-1.5 font-bold">
-                  <ArrowUpRight className="w-3.5 h-3.5" /> LONG ({stats.longs.count} trades)
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-brand">{stats.longs.winRate.toFixed(1)}% WR</span>
-                  <span className={cn("font-mono font-bold text-xs", stats.longs.pnl >= 0 ? "text-profit" : "text-loss")}>
-                    {stats.longs.pnl >= 0 ? "+" : ""}{formatCurrency(stats.longs.pnl)}
-                  </span>
-                </div>
-              </div>
-              <div className="h-2.5 rounded-full bg-surface-3 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-profit/80 to-profit rounded-full transition-all duration-700 ease-out" style={{ width: `${stats.longs.winRate}%` }} />
-              </div>
-            </div>
-
-            {/* Short */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-loss flex items-center gap-1.5 font-bold">
-                  <ArrowDownRight className="w-3.5 h-3.5" /> SHORT ({stats.shorts.count} trades)
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-brand">{stats.shorts.winRate.toFixed(1)}% WR</span>
-                  <span className={cn("font-mono font-bold text-xs", stats.shorts.pnl >= 0 ? "text-profit" : "text-loss")}>
-                    {stats.shorts.pnl >= 0 ? "+" : ""}{formatCurrency(stats.shorts.pnl)}
-                  </span>
-                </div>
-              </div>
-              <div className="h-2.5 rounded-full bg-surface-3 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-loss/80 to-loss rounded-full transition-all duration-700 ease-out" style={{ width: `${stats.shorts.winRate}%` }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══ SESSION PERFORMANCE ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.sessions.map((sess) => (
-          <Card key={sess.session} className={cn("card-hover border-l-[3px]", sess.color)}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold">{sess.emoji} {sess.session}</span>
-                <Badge variant="outline" className="text-[10px]">{sess.count} trades</Badge>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground-subtle">Win Rate</span>
-                  <span className="font-mono font-bold text-brand">{sess.winRate.toFixed(1)}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                  <div className="h-full bg-brand rounded-full transition-all duration-700 ease-out" style={{ width: `${sess.winRate}%` }} />
-                </div>
-                <div className="flex justify-between text-xs pt-1">
-                  <span className="text-foreground-subtle">Net P&amp;L</span>
-                  <span className={cn("font-mono font-bold", sess.pnl >= 0 ? "text-profit" : "text-loss")}>
-                    {sess.pnl >= 0 ? "+" : ""}{formatCurrency(sess.pnl)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* ═══ MAE / MFE EXECUTION QUALITY ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-loss" />
-              MAE — Max Adverse Excursion
-            </CardTitle>
-            <CardDescription>Average maximum drawdown per trade before close.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats.avgMae !== null ? (
-              <div className="space-y-3">
-                <p className="text-3xl font-extrabold font-mono tabular text-loss">
-                  -{formatCurrency(stats.avgMae)}
-                </p>
-                <p className="text-[10px] text-foreground-muted">Based on {stats.maeCount} trades with MAE data.</p>
-                <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
-                  <div className="h-full bg-loss/60 rounded-full transition-all duration-700" style={{ width: `${Math.min(100, stats.avgMae * 2)}%` }} />
-                </div>
-                <p className="text-[10px] text-foreground-subtle">Lower MAE = tighter entries. Target: minimize adverse movement.</p>
-              </div>
-            ) : (
-              <div className="py-8 text-center border border-dashed border-border rounded-lg">
-                <TrendingDown className="w-8 h-8 text-foreground-subtle/20 mx-auto mb-2" />
-                <p className="text-xs text-foreground-subtle">No MAE data recorded yet. Add MAE values to your trades.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-profit" />
-              MFE — Max Favorable Excursion
-            </CardTitle>
-            <CardDescription>Average maximum favorable movement per trade before close.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats.avgMfe !== null ? (
-              <div className="space-y-3">
-                <p className="text-3xl font-extrabold font-mono tabular text-profit">
-                  +{formatCurrency(stats.avgMfe)}
-                </p>
-                <p className="text-[10px] text-foreground-muted">Based on {stats.mfeCount} trades with MFE data.</p>
-                <div className="h-2 rounded-full bg-surface-3 overflow-hidden">
-                  <div className="h-full bg-profit/60 rounded-full transition-all duration-700" style={{ width: `${Math.min(100, stats.avgMfe * 2)}%` }} />
-                </div>
-                <p className="text-[10px] text-foreground-subtle">Higher MFE = better trade selection. Compare MFE to actual exit to find missed profits.</p>
-              </div>
-            ) : (
-              <div className="py-8 text-center border border-dashed border-border rounded-lg">
-                <TrendingUp className="w-8 h-8 text-foreground-subtle/20 mx-auto mb-2" />
-                <p className="text-xs text-foreground-subtle">No MFE data recorded yet. Add MFE values to your trades.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══ DRAWDOWN UNDERWATER + MONTHLY P&L ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Card className="lg:col-span-7 card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingDown className="w-4 h-4 text-loss" />
-              Drawdown Underwater Chart
-            </CardTitle>
-            <CardDescription>Peak-to-trough equity decline over time.</CardDescription>
-          </CardHeader>
-          <CardContent className="h-56 pt-2">
-            {drawdownCurve.length === 0 ? (
-              <div className="h-full flex items-center justify-center border border-dashed border-border rounded-lg">
-                <p className="text-xs text-foreground-subtle">Close trades to visualize drawdown.</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={drawdownCurve}>
-                  <defs>
-                    <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#fb7185" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#fb7185" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="date" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }}
-                    formatter={(val) => [formatCurrency(Number(val)), "Drawdown"]}
-                  />
-                  <Area type="monotone" dataKey="drawdown" stroke="#fb7185" strokeWidth={2} fill="url(#ddGrad)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-5 card-hover">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-brand" />
-              Monthly P&amp;L Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-56 pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyPnl}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="label" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", borderRadius: "10px", fontSize: "11px" }}
-                  formatter={(val, _n, p) => [`${formatCurrency(Number(val))} · ${(p?.payload as { trades?: number })?.trades ?? 0} trades`, "Net P&L"]}
-                />
-                <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
-                  {monthlyPnl.map((entry, i) => (
-                    <Cell key={i} fill={entry.pnl >= 0 ? "#34d399" : "#fb7185"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══ R-MULTIPLE DISTRIBUTION ═══ */}
-      <Card className="card-hover">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Target className="w-4 h-4 text-brand" />
-            R-Multiple Distribution
-          </CardTitle>
-          <CardDescription>How your trades cluster across R buckets — edge quality at a glance.</CardDescription>
-        </CardHeader>
-        <CardContent className="h-48 pt-2">
-          {rBuckets.every((b) => b.count === 0) ? (
-            <div className="h-full flex items-center justify-center border border-dashed border-border rounded-lg">
-              <p className="text-xs text-foreground-subtle">Log R-multiples on closed trades to unlock this chart.</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={rBuckets} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-                <XAxis type="number" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="label" stroke="var(--foreground-subtle)" fontSize={10} tickLine={false} axisLine={false} width={80} />
-                <Tooltip contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "10px", fontSize: "11px", color: "var(--foreground)" }} />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {rBuckets.map((b, i) => (
-                    <Cell key={i} fill={b.label.includes("-") ? "var(--loss)" : "var(--brand)"} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ═══ SETUP + SYMBOL + CONFLUENCE BREAKDOWNS ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {[
-          { title: "Setup Performance", rows: setupRows, icon: Layers },
-          { title: "Symbol Performance", rows: symbolRows, icon: Globe },
-        ].map(({ title, rows, icon: Icon }) => (
-          <Card key={title} className="card-hover lg:col-span-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Icon className="w-4 h-4 text-brand" />
-                {title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 max-h-64 overflow-y-auto">
-              {rows.length === 0 ? (
-                <p className="text-xs text-foreground-subtle text-center py-6">No data yet.</p>
-              ) : (
-                rows.map((r) => (
-                  <div key={r.key} className="p-2.5 rounded-lg border border-border bg-surface-2/30 space-y-1">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span>{r.key}</span>
-                      <span className="text-brand">{(r.winRate * 100).toFixed(0)}% WR</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                      <div className="h-full bg-brand rounded-full" style={{ width: `${r.winRate * 100}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[10px] font-mono">
-                      <span className="text-foreground-subtle">{r.trades} trades · {r.avgR.toFixed(1)}R avg</span>
-                      <span className={r.netPnl >= 0 ? "text-profit" : "text-loss"}>
-                        {r.netPnl >= 0 ? "+" : ""}{formatCurrency(r.netPnl)}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        ))}
-
-        <Card className="card-hover lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Award className="w-4 h-4 text-brand" />
-              Confluence Edge
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 max-h-64 overflow-y-auto">
-            {confluenceRows.length === 0 ? (
-              <p className="text-xs text-foreground-subtle text-center py-6">Tag confluences on trades.</p>
-            ) : (
-              confluenceRows.map((c) => (
-                <div key={c.tag} className="p-2.5 rounded-lg border border-border bg-surface-2/30 space-y-1">
-                  <div className="flex justify-between text-xs font-bold">
-                    <Badge variant="outline" className="text-[9px]">{c.tag}</Badge>
-                    <span className="text-brand">{c.winRate.toFixed(0)}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
-                    <div className="h-full bg-brand rounded-full" style={{ width: `${c.winRate}%` }} />
-                  </div>
-                  <div className="flex justify-between text-[10px] font-mono">
-                    <span className="text-foreground-subtle">{c.trades} trades</span>
-                    <span className={c.pnl >= 0 ? "text-profit" : "text-loss"}>
-                      {c.pnl >= 0 ? "+" : ""}{formatCurrency(c.pnl)}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══ EMOTION CORRELATION ═══ */}
-      <Card className="card-hover">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Brain className="w-4 h-4 text-brand" />
-            Emotion → Performance Correlation
-          </CardTitle>
-          <CardDescription>Pre-trade emotional state vs win rate and net P&amp;L.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {emotionStats.length === 0 ? (
-            <div className="py-10 text-center border border-dashed border-border rounded-lg">
-              <p className="text-xs text-foreground-subtle">Log pre-trade emotions on your trades to unlock psychology analytics.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {emotionStats.map((e) => (
-                <div key={e.emotion} className="p-3 rounded-lg border border-border bg-surface-2/30">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-bold capitalize">{e.emotion}</span>
-                    <Badge variant="outline" className="text-[9px]">{e.trades} trades</Badge>
-                  </div>
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="text-brand font-bold">{e.winRate.toFixed(0)}% WR</span>
-                    <span className={e.netPnl >= 0 ? "text-profit" : "text-loss"}>
-                      {e.netPnl >= 0 ? "+" : ""}{formatCurrency(e.netPnl)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden mt-2">
-                    <div className="h-full bg-brand rounded-full" style={{ width: `${e.winRate}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-        </>
-      )}
-    </PageTransition>
+      <CalendarBreakdowns year={year} months={yearCalendar.months} stats={stats} />
+    </div>
   );
+}
+
+function CalendarBreakdowns({ year, months, stats }: { year: number; months: any[]; stats: any }) {
+  const quarterRows = Array.from({ length: 4 }, (_, quarter) => {
+    const subset = months.slice(quarter * 3, quarter * 3 + 3);
+    return { label: `Q${quarter + 1}`, months: subset };
+  });
+  const monthGrid = months.map((month) => {
+    const days = month.cells.filter(Boolean).map((cell: any) => cell.data).filter(Boolean) as DayRow[];
+    const pnl = days.reduce((sum, d) => sum + d.pnl, 0);
+    const trades = days.reduce((sum, d) => sum + d.trades, 0);
+    const wins = days.reduce((sum, d) => sum + d.wins, 0);
+    return { label: month.label, pnl, trades, winRate: trades ? wins / trades * 100 : 0 };
+  });
+  return <div className="space-y-6">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">{quarterRows.map((quarter) => <Card key={quarter.label} className="card-hover"><CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base">{quarter.label}</CardTitle><span className="font-mono text-sm font-bold text-profit">{formatCurrency(quarter.months.reduce((sum, month) => sum + month.cells.filter(Boolean).reduce((inner: number, cell: any) => inner + (cell.data?.pnl ?? 0), 0), 0))}</span></CardHeader><CardContent><table className="w-full text-xs"><thead className="text-left text-foreground-muted"><tr><th className="pb-2">Month</th><th className="pb-2 text-right">Net Profit</th><th className="pb-2 text-right">Win Rate</th><th className="pb-2 text-right">Trades</th></tr></thead><tbody>{quarter.months.map((month: any) => { const row = monthGrid[month.month]; return <tr key={month.label} className="border-t border-border/70"><td className="py-2.5 font-semibold">{month.label}</td><td className={cn("py-2.5 text-right font-mono", row.pnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(row.pnl)}</td><td className="py-2.5 text-right">{pct(row.winRate)}</td><td className="py-2.5 text-right">{row.trades}</td></tr>; })}</tbody></table></CardContent></Card>)}</div>
+    <Card className="card-hover"><CardHeader><CardTitle className="text-base">{new Date(year, new Date().getMonth(), 1).toLocaleDateString("en-US", { month: "long" })} {year}</CardTitle><CardDescription>Monthly calendar detail and weekly trading activity.</CardDescription></CardHeader><CardContent className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6"><div className="grid grid-cols-7 gap-2">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => <p key={day} className="text-center text-xs font-bold text-foreground-muted">{day}</p>)}{Array.from({ length: 35 }, (_, index) => { const cell = months[new Date().getMonth()].cells[index]; const pnl = cell?.data?.pnl ?? 0; return <div key={cell?.date ?? `empty-${index}`} className={cn("min-h-24 rounded-xl border border-border/70 p-2", cell?.data ? (pnl >= 0 ? "bg-profit/10" : "bg-loss/10") : "bg-surface/30")}><p className="font-mono text-xs font-bold">{cell?.day ?? ""}</p>{cell?.data ? <><p className={cn("mt-2 font-mono text-xs font-bold", pnl >= 0 ? "text-profit" : "text-loss")}>{formatCurrency(pnl)}</p><p className="mt-1 text-[10px] text-foreground-muted">{cell.data.trades} trades</p></> : null}</div>; })}</div><div className="space-y-3"><StatCard label="Trading Days" value={stats.tradingDays} /><StatCard label="Day Win Rate" value={pct(stats.profitableDaysPct)} tone="brand" /><StatCard label="Winning Days" value={stats.winDays.length} tone="profit" /><StatCard label="Losing Days" value={stats.lossDays.length} tone="loss" /></div></CardContent></Card>
+  </div>;
 }

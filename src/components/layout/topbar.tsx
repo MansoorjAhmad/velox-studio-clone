@@ -13,7 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard":                   "Dashboard",
   "/dashboard/journal":           "Trade Log",
   "/dashboard/trader-index":      "Trader Index",
-  "/dashboard/analytics":         "Performance Analytics",
+  "/dashboard/analytics":         "My Stats",
   "/dashboard/economic-calendar": "Economic Calendar",
   "/dashboard/backtest":          "Backtest Replay",
   "/dashboard/calculator":        "Risk Calculator",
