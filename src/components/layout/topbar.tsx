@@ -70,6 +70,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [selectedAccId, setSelectedAccId] = useState<string>("all");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -98,10 +99,12 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
   }, []);
 
   const handleSelectAccount = async (id: string) => {
+    if (switching) return;
+    setSwitching(true);
     setSelectedAccId(id);
     await setActiveAccountIdSynced(id);
     setShowDropdown(false);
-    // Dispatch custom event for reactive page filtering
+    setSwitching(false);
   };
 
   const activeAcc = accounts.find((a) => a.id === selectedAccId);
@@ -149,6 +152,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
         <div className="relative">
           <button
             onClick={() => setShowDropdown((v) => !v)}
+            disabled={switching}
             className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 h-8 text-xs font-semibold hover:border-brand/50 transition-all"
           >
             <span
@@ -168,6 +172,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
               </p>
               <button
                 onClick={() => handleSelectAccount("all")}
+                disabled={switching}
                 className={cn(
                   "w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all",
                   selectedAccId === "all" ? "bg-brand/15 text-brand" : "hover:bg-surface-2 text-foreground-muted",
@@ -183,6 +188,7 @@ export function TopBar({ username, onMenuClick }: TopBarProps) {
                 <button
                   key={acc.id}
                   onClick={() => handleSelectAccount(acc.id)}
+                  disabled={switching}
                   className={cn(
                     "w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-all",
                     selectedAccId === acc.id ? "bg-brand/15 text-brand font-bold" : "hover:bg-surface-2 text-foreground-muted",

@@ -10,7 +10,7 @@ import { getTrades } from "@/lib/journal/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, Loader2 } from "lucide-react";
 import type { Trade } from "@/lib/journal/types";
 import { calculateMetrics, currentStreak } from "@/lib/journal/metrics";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -21,6 +21,7 @@ import { getActiveAccountId } from "@/lib/accounts/active-account";
 export default function JournalPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [accountSwitching, setAccountSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
@@ -43,7 +44,7 @@ export default function JournalPage() {
 
   useEffect(() => {
     load();
-    const handleAccChange = () => load();
+    const handleAccChange = async () => { setAccountSwitching(true); await load(); setAccountSwitching(false); };
     window.addEventListener("active_account_changed", handleAccChange);
     return () => window.removeEventListener("active_account_changed", handleAccChange);
   }, [load]);
@@ -68,7 +69,8 @@ export default function JournalPage() {
   const streak = useMemo(() => currentStreak(trades), [trades]);
 
   return (
-    <PageTransition className="space-y-6">
+    <PageTransition className="space-y-6 relative">
+      {accountSwitching && <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>}
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">

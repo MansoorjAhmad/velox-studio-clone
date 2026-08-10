@@ -30,60 +30,96 @@ When suggesting a routine, format as numbered daily time blocks.
 You never handle UI, theme, or backend concerns. You are purely a trading
 productivity assistant.`;
 
-export interface AgentAction {
-  type: "trade" | "task" | "routine" | "none";
-  data?: Record<string, string>;
-  display: string;
+export interface ParsedTrade {
+  symbol: string;
+  direction: "LONG" | "SHORT";
+  entry_price: number | null;
+  stop_loss: number | null;
+  take_profit: number | null;
+  exit_price: number | null;
+  pnl: number | null;
+  setup: string | null;
+  session: string | null;
 }
 
-/**
- * Send a message to the Zenith Agent and get a response.
- * Returns the text response and any parsed action (trade/task/routine).
- */
+export interface ParsedTask {
+  title: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  category: "trading" | "health" | "work" | "personal" | "learning" | "finance";
+  due_date: string | null;
+}
+
+export type AgentAction =
+  | { type: "trade"; data: ParsedTrade; display: string }
+  | { type: "task"; data: ParsedTask; display: string }
+  | { type: "routine"; display: string }
+  | { type: "none"; display: string };
+
 export async function chatWithAgent(
   message: string,
   history: { role: string; text: string }[],
 ): Promise<{ text: string; action: AgentAction }> {
-  // Build context from recent history
   const contextParts = history.slice(-10).map((h) => `${h.role}: ${h.text}`).join("\n");
   const fullMessage = contextParts
     ? `Conversation history:\n${contextParts}\n\nUser: ${message}`
     : message;
-
   const response = await callGemini(ZENITH_SYSTEM_PROMPT, fullMessage);
 
   if (!response) {
     return {
-      text: "I'm having trouble connecting right now. Check that your Gemini API key is set in `.env.local`. In the meantime, I can still help — just describe what you need.",
+      text: "I'm having trouble connecting right now. Please try again in a moment.",
       action: { type: "none", display: "" },
     };
   }
 
-  // Try to parse actions from the response
-  const action = parseAction(response);
-
-  return { text: response, action };
+  return { text: response, action: parseAction(response) };
 }
 
-function parseAction(text: string): AgentAction {
-  // Check for trade format: SYMBOL | DIRECTION | ENTRY | STOP | TP | EXIT | PNL | SETUP | SESSION
+export function parseAction(text: string): AgentAction {
   const tradeMatch = text.match(
-    /([A-Z]{3,6})\s*\|\s*(LONG|SHORT)\s*\|/i,
+    /([A-Z]{3,6})\s*\|\s*(LONG|SHORT)\s*\|\s*([\d.]+|-)\s*\|\s*([\d.]+|-)\s*\|\s*([\d.]+|-)\s*\|\s*([\d.]+|-)\s*\|\s*(-?[\d.]+|-)\s*\|\s*([^|]+)\s*\|\s*([^\n|]+)/i,
   );
   if (tradeMatch) {
-    return { type: "trade", display: text };
+    const [, symbol, direction, entry, stop, tp, exit, pnl, setup, session] = tradeMatch;
+    const numberOrNull = (value: string) => {
+      const number = value === "-" ? null : Number.parseFloat(value);
+      return number != null && Number.isFinite(number) ? number : null;
+    };
+    return {
+      type: "trade",
+      data: {
+        symbol: symbol.toUpperCase(),
+        direction: direction.toUpperCase() as "LONG" | "SHORT",
+        entry_price: numberOrNull(entry),
+        stop_loss: numberOrNull(stop),
+        take_profit: numberOrNull(tp),
+        exit_price: numberOrNull(exit),
+        pnl: numberOrNull(pnl),
+        setup: setup.trim() || null,
+        session: session.trim() || null,
+      },
+      display: text,
+    };
   }
 
-  // Check for task format: TASK: [title] | PRIORITY: ...
-  const taskMatch = text.match(/TASK:\s*(.+?)\s*\|\s*PRIORITY:/i);
+  const taskMatch = text.match(
+    /TASK:\s*(.+?)\s*\|\s*PRIORITY:\s*(low|medium|high|urgent)\s*\|\s*CATEGORY:\s*(trading|health|work|personal|learning|finance)\s*\|\s*DUE:\s*([^\n]+)/i,
+  );
   if (taskMatch) {
-    return { type: "task", display: text };
+    const [, title, priority, category, due] = taskMatch;
+    const dueValue = due.trim();
+    return {
+      type: "task",
+      data: {
+        title: title.trim(),
+        priority: priority.toLowerCase() as ParsedTask["priority"],
+        category: category.toLowerCase() as ParsedTask["category"],
+        due_date: dueValue.toLowerCase() === "none" ? null : dueValue,
+      },
+      display: text,
+    };
   }
 
-  // Check for routine
-  if (/routine|schedule|daily\s*plan/i.test(text)) {
-    return { type: "routine", display: text };
-  }
-
-  return { type: "none", display: "" };
+  if (/routine|schedule|daily\s*plan/i.test(text)) return { type: "routine", display: text };
+  return { type: "none", display: text };
 }

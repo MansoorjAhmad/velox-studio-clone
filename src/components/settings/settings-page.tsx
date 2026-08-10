@@ -53,6 +53,7 @@ export function SettingsPage() {
   const [currency, setCurrency] = useState("USD");
   const [accountType, setAccountType] = useState("personal");
   const [loading, setLoading] = useState(true);
+  const [accountSwitching, setAccountSwitching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [tradingConfig, setTradingConfig] = useState<TradingConfig>(() => getTradingConfig());
@@ -127,6 +128,13 @@ export function SettingsPage() {
       setLoading(false);
     };
     load();
+    const handleAccountChange = async () => {
+      setAccountSwitching(true);
+      await load();
+      setAccountSwitching(false);
+    };
+    window.addEventListener("active_account_changed", handleAccountChange);
+    return () => window.removeEventListener("active_account_changed", handleAccountChange);
   }, [supabase]);
 
   const handleSaveProfile = async () => {
@@ -203,7 +211,8 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-2xl">
+    <div className="space-y-6 animate-fade-in max-w-2xl relative">
+      {accountSwitching && <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>}
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-md bg-brand/10 flex items-center justify-center">
           <Settings className="w-5 h-5 text-brand" />

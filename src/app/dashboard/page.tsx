@@ -45,6 +45,7 @@ import {
   Activity,
   Clock,
   Layers,
+  Loader2,
 } from "lucide-react";
 import { PageTransition } from "@/components/ui/motion";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
@@ -77,6 +78,7 @@ export default function DashboardPage() {
   // initialLoad = true only on first mount — shows skeleton
   // After first data arrives, we keep stale data visible on refetch
   const [initialLoad, setInitialLoad] = useState(true);
+  const [accountSwitching, setAccountSwitching] = useState(false);
   const [tradingConfig, setTradingConfig] = useState(getTradingConfig);
   const [routineItemsCount, setRoutineItemsCount] = useState(0);
   const [routineOverallPct, setRoutineOverallPct] = useState(0);
@@ -135,7 +137,11 @@ export default function DashboardPage() {
     syncActiveAccountFromServer();
     load();
     setTradingConfig(getTradingConfig());
-    const handleAccChange = () => load();
+    const handleAccChange = async () => {
+      setAccountSwitching(true);
+      await load();
+      setAccountSwitching(false);
+    };
     const handleConfigChange = () => setTradingConfig(getTradingConfig());
     window.addEventListener("active_account_changed", handleAccChange);
     window.addEventListener("trading_config_changed", handleConfigChange);
@@ -324,7 +330,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <PageTransition className="space-y-6">
+    <PageTransition className="space-y-6 relative">
+      {accountSwitching && <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>}
       {/* Executive Banner */}
       <Card className="border-brand/20 glass overflow-hidden relative card-hover">
         <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-brand/5 blur-3xl pointer-events-none" />

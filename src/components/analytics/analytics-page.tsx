@@ -42,6 +42,7 @@ import {
   Target,
   Layers,
   Brain,
+  Loader2,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
@@ -68,6 +69,7 @@ export function AnalyticsPage() {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [activeAccId, setActiveAccId] = useState<string>("all");
   const [initialLoad, setInitialLoad] = useState(true);
+  const [accountSwitching, setAccountSwitching] = useState(false);
   const [timeframe, setTimeframe] = useState<"7D" | "30D" | "90D" | "ALL">("30D");
   const [activeTab, setActiveTab] = useState<"overview" | "calendar" | "detailed">("overview");
 
@@ -89,7 +91,7 @@ export function AnalyticsPage() {
 
   useEffect(() => {
     load();
-    const h = () => load();
+    const h = async () => { setAccountSwitching(true); await load(); setAccountSwitching(false); };
     window.addEventListener("active_account_changed", h);
     return () => window.removeEventListener("active_account_changed", h);
   }, [load]);
@@ -228,7 +230,8 @@ export function AnalyticsPage() {
   }
 
   return (
-    <PageTransition className="space-y-6">
+    <PageTransition className="space-y-6 relative">
+      {accountSwitching && <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>}
       {/* ═══ HEADER ═══ */}
       <FadeIn>
         <div className="glass-subtle rounded-xl border border-border/60 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

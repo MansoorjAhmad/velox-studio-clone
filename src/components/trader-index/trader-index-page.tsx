@@ -13,7 +13,7 @@ import { RuleAlerts } from "@/components/dashboard/rule-alerts";
 import { getTrades } from "@/lib/journal/actions";
 import { calculateTraderIndex } from "@/lib/journal/trader-index";
 import { getTradingConfig } from "@/lib/trading-config";
-import { Shield, BookOpen, Brain, Flame } from "lucide-react";
+import { Shield, BookOpen, Brain, Flame, Loader2 } from "lucide-react";
 import { PageTransition, FadeIn } from "@/components/ui/motion";
 import type { Trade } from "@/lib/journal/types";
 import { getActiveAccountId } from "@/lib/accounts/active-account";
@@ -21,6 +21,7 @@ import { getActiveAccountId } from "@/lib/accounts/active-account";
 export function TraderIndexPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [accountSwitching, setAccountSwitching] = useState(false);
 
   const load = useCallback(async () => {
     const res = await getTrades();
@@ -35,7 +36,7 @@ export function TraderIndexPage() {
 
   useEffect(() => {
     load();
-    const h = () => load();
+    const h = async () => { setAccountSwitching(true); await load(); setAccountSwitching(false); };
     window.addEventListener("active_account_changed", h);
     return () => window.removeEventListener("active_account_changed", h);
   }, [load]);
@@ -60,7 +61,8 @@ export function TraderIndexPage() {
   const { breakdown, alerts } = result;
 
   return (
-    <PageTransition className="space-y-6">
+    <PageTransition className="space-y-6 relative">
+      {accountSwitching && <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-[1px] flex items-center justify-center rounded-xl"><Loader2 className="w-5 h-5 animate-spin text-brand" /></div>}
       {/* Header */}
       <FadeIn>
         <div className="glass-subtle rounded-xl border border-border/60 p-4 flex items-center gap-3">
